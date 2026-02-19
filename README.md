@@ -38,6 +38,7 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 ## Folder Structure
 
+```
 scholarsync/
 ├── prisma/
 │   └── schema.prisma        # Your database tables go here
@@ -65,3 +66,4 @@ scholarsync/
 ├── .gitignore
 ├── tailwind.config.ts
 └── package.json
+```
