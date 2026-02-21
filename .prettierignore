@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Prettier ignore file
 .next/
 node_modules/
@@ -5,3 +6,10 @@ build/
 dist/
 coverage/
 public/
+=======
+node_modules
+.next
+dist
+build
+public
+>>>>>>> main
