@@ -1,20 +1,20 @@
-"use client";
+'use client';
 
-import { HelpCircle, MessageSquare } from "lucide-react";
-import { NavLink } from "../NavLink";
+import { HelpCircle, MessageSquare } from 'lucide-react';
+import { NavLink } from '../NavLink';
 
-type UserRole = "student" | "lecturer";
+type UserRole = 'student' | 'lecturer';
 
 interface BottomNavProps {
   role: UserRole;
 }
 
 const mainNav = [
-  { to: "/qna", icon: HelpCircle, label: "Q&A" },
-  { to: "/forum", icon: MessageSquare, label: "Forum" },
+  { to: '/qna', icon: HelpCircle, label: 'Q&A' },
+  { to: '/forum', icon: MessageSquare, label: 'Forum' },
 ];
 
-export function BottomNav({/* role */}: BottomNavProps) {
+export function BottomNav({} /* role */ : BottomNavProps) {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t bg-card/95 backdrop-blur-md md:hidden">
       <div className="flex items-center justify-around py-2">

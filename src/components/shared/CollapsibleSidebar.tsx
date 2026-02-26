@@ -1,10 +1,19 @@
-"use client";
+'use client';
 
-import { Home, MessageSquare, PlusCircle, /* Award, */User, LayoutDashboard, BookOpen, /* BarChart3, */HelpCircle, /* LogOut, */X } from "lucide-react";
-import { NavLink } from "../NavLink";
+import {
+  Home,
+  MessageSquare,
+  PlusCircle,
+  /* Award, */ User,
+  LayoutDashboard,
+  BookOpen,
+  /* BarChart3, */ HelpCircle,
+  /* LogOut, */ X,
+} from 'lucide-react';
+import { NavLink } from '../NavLink';
 //import { useRouter } from "next/navigation";
 
-type UserRole = "student" | "lecturer";
+type UserRole = 'student' | 'lecturer';
 
 interface CollapsibleSidebarProps {
   role: UserRole;
@@ -13,33 +22,36 @@ interface CollapsibleSidebarProps {
 }
 
 const studentNav = [
-  { to: "/student", icon: Home, label: "Dashboard" },
-  { to: "/qna", icon: HelpCircle, label: "My Questions" },
-  { to: "/ask", icon: PlusCircle, label: "Ask Question" },
-  { to: "/forum", icon: BookOpen, label: "Knowledge Forum" },
-  { to: "/profile", icon: User, label: "Profile" },
+  { to: '/student', icon: Home, label: 'Dashboard' },
+  { to: '/qna', icon: HelpCircle, label: 'My Questions' },
+  { to: '/ask', icon: PlusCircle, label: 'Ask Question' },
+  { to: '/forum', icon: BookOpen, label: 'Knowledge Forum' },
+  { to: '/profile', icon: User, label: 'Profile' },
 ];
 
 const lecturerNav = [
-  { to: "/lecturer", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/modules", icon: BookOpen, label: "Manage Modules" },
-  { to: "/qna", icon: HelpCircle, label: "All Questions" },
-  { to: "/forum", icon: MessageSquare, label: "Forum" },
-  { to: "/profile", icon: User, label: "Profile" },
+  { to: '/lecturer', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/modules', icon: BookOpen, label: 'Manage Modules' },
+  { to: '/qna', icon: HelpCircle, label: 'All Questions' },
+  { to: '/forum', icon: MessageSquare, label: 'Forum' },
+  { to: '/profile', icon: User, label: 'Profile' },
 ];
 
 export function CollapsibleSidebar({ role, open, onClose }: CollapsibleSidebarProps) {
-  const items = role === "student" ? studentNav : lecturerNav;
+  const items = role === 'student' ? studentNav : lecturerNav;
   //const router = useRouter();
 
   return (
     <>
       {open && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm md:hidden" onClick={onClose} />
+        <div
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm md:hidden"
+          onClick={onClose}
+        />
       )}
       <aside
         className={`fixed top-0 left-0 z-50 h-full w-64 bg-card border-r shadow-lg transform transition-transform duration-300 ease-in-out md:hidden ${
-          open ? "translate-x-0" : "-translate-x-full"
+          open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div className="p-4 border-b flex items-center justify-between">

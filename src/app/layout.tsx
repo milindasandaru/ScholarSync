@@ -1,14 +1,14 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { ThemeProvider } from "../components/theme-provider";
-import { ClientLayout } from "../components/shared/ClientLayout";
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
+import { ThemeProvider } from '../components/theme-provider';
+import { ClientLayout } from '../components/shared/ClientLayout';
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: "ScholarSync | Academic Hub",
-  description: "Intelligent Q&A and Knowledge Sharing Platform",
+  title: 'ScholarSync | Academic Hub',
+  description: 'Intelligent Q&A and Knowledge Sharing Platform',
 };
 
 export default function RootLayout({
@@ -26,9 +26,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {/* This renders your Sidebars, Navs, and the Page Content */}
-          <ClientLayout>
-            {children}
-          </ClientLayout>
+          <ClientLayout>{children}</ClientLayout>
         </ThemeProvider>
       </body>
     </html>
