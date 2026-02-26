@@ -1,16 +1,41 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { BookOpen, MessageSquare, Award, Users, ChevronRight, GraduationCap, Zap, Shield } from "lucide-react";
-import { ThemeToggle } from "@/components/shared/ThemeToggle"; // Adjust path if needed
-import { Card, CardContent } from "@/components/ui/card";
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import {
+  BookOpen,
+  MessageSquare,
+  Award,
+  Users,
+  ChevronRight,
+  GraduationCap,
+  Zap,
+  Shield,
+} from 'lucide-react';
+import { ThemeToggle } from '@/components/shared/ThemeToggle'; // Adjust path if needed
+import { Card, CardContent } from '@/components/ui/card';
 
 const features = [
-  { icon: MessageSquare, title: "Module-Based Q&A", desc: "Ask and answer questions organized by academic modules" },
-  { icon: Award, title: "Reputation & Badges", desc: "Earn recognition for your contributions to the community" },
-  { icon: Users, title: "Lecturer Verification", desc: "Get verified answers from your lecturers" },
-  { icon: BookOpen, title: "Knowledge Sharing", desc: "Share resources, tips, and study materials" },
-  { icon: Zap, title: "Smart Suggestions", desc: "AI-powered similar question recommendations" },
-  { icon: Shield, title: "Role-Based Access", desc: "Tailored experience for students and lecturers" },
+  {
+    icon: MessageSquare,
+    title: 'Module-Based Q&A',
+    desc: 'Ask and answer questions organized by academic modules',
+  },
+  {
+    icon: Award,
+    title: 'Reputation & Badges',
+    desc: 'Earn recognition for your contributions to the community',
+  },
+  { icon: Users, title: 'Lecturer Verification', desc: 'Get verified answers from your lecturers' },
+  {
+    icon: BookOpen,
+    title: 'Knowledge Sharing',
+    desc: 'Share resources, tips, and study materials',
+  },
+  { icon: Zap, title: 'Smart Suggestions', desc: 'AI-powered similar question recommendations' },
+  {
+    icon: Shield,
+    title: 'Role-Based Access',
+    desc: 'Tailored experience for students and lecturers',
+  },
 ];
 
 export default function Landing() {
@@ -26,7 +51,9 @@ export default function Landing() {
           <div className="flex items-center gap-3">
             <ThemeToggle />
             <Link href="/login">
-              <Button variant="ghost" size="sm">Sign In</Button>
+              <Button variant="ghost" size="sm">
+                Sign In
+              </Button>
             </Link>
             <Link href="/register">
               <Button size="sm">Get Started</Button>
@@ -46,19 +73,32 @@ export default function Landing() {
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6 animate-slide-up">
               Where Students & Lecturers Connect Through Knowledge
             </h2>
-            <p className="text-base md:text-lg text-primary-foreground/80 mb-8 max-w-2xl mx-auto animate-slide-up" style={{ animationDelay: "0.1s" }}>
-              ScholarSync is a module-based academic Q&A platform designed for universities. 
-              Ask questions, share knowledge, and earn reputation — all in one place.
+            <p
+              className="text-base md:text-lg text-primary-foreground/80 mb-8 max-w-2xl mx-auto animate-slide-up"
+              style={{ animationDelay: '0.1s' }}
+            >
+              ScholarSync is a module-based academic Q&A platform designed for universities. Ask
+              questions, share knowledge, and earn reputation — all in one place.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-slide-up" style={{ animationDelay: "0.2s" }}>
+            <div
+              className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-slide-up"
+              style={{ animationDelay: '0.2s' }}
+            >
               <Link href="/register" className="w-full sm:w-auto">
-                <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 w-full">
+                <Button
+                  size="lg"
+                  className="bg-accent text-accent-foreground hover:bg-accent/90 w-full"
+                >
                   Join ScholarSync
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               </Link>
               <Link href="/login" className="w-full sm:w-auto">
-                <Button size="lg" variant="outline" className="text-primary-foreground hover:bg-primary-foreground/10 w-full border-white/20">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="text-primary-foreground hover:bg-primary-foreground/10 w-full border-white/20"
+                >
                   Sign In
                 </Button>
               </Link>
@@ -73,12 +113,17 @@ export default function Landing() {
           <div className="text-center mb-12">
             <h3 className="text-2xl md:text-3xl font-bold mb-3">Everything You Need to Excel</h3>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              Built for academic collaboration, ScholarSync brings together all the tools students and lecturers need.
+              Built for academic collaboration, ScholarSync brings together all the tools students
+              and lecturers need.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((f, i) => (
-              <Card key={f.title} className="animate-fade-in" style={{ animationDelay: `${i * 0.1}s` }}>
+              <Card
+                key={f.title}
+                className="animate-fade-in"
+                style={{ animationDelay: `${i * 0.1}s` }}
+              >
                 <CardContent className="p-6">
                   <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
                     <f.icon className="h-6 w-6 text-primary" />
