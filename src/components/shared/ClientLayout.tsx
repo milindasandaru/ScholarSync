@@ -16,8 +16,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   // get the current role from the store
   const { role, setRole } = useAuthStore();
 
-  const isDashboardPage =
-    pathname.startsWith('/student') || pathname.startsWith('/lecturer');
+  const isDashboardPage = pathname.startsWith('/student') || pathname.startsWith('/lecturer');
 
   // Keep the dashboard shell only for dashboard routes.
   if (!isDashboardPage) {
