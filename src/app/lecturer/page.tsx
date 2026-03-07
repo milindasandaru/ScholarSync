@@ -1,13 +1,9 @@
-"use client";
+'use client';
 
-import React from 'react'
+import React from 'react';
 
 const page = () => {
-  return (
-    <div>
-      lecturer page
-    </div>
-  )
-}
+  return <div>lecturer page</div>;
+};
 
-export default page
+export default page;

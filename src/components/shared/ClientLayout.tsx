@@ -28,11 +28,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen w-full bg-background">
       <DesktopSidebar role={role} />
-      <CollapsibleSidebar
-        role={role}
-        open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
+      <CollapsibleSidebar role={role} open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <main className="flex-1 pb-16 md:pb-0 flex flex-col min-w-0">
         <div className="md:hidden sticky top-0 z-40 border-b bg-card/95 backdrop-blur-md px-4 py-3 flex items-center justify-between">
@@ -51,27 +47,27 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* DEV MODE TOGGLE: Switch roles instantly */}
-          <div className="flex items-center gap-2">
-            <div className="hidden md:flex items-center gap-2 text-xs font-mono bg-muted px-2 py-1 rounded-md border text-muted-foreground mr-2">
-              <span>Dev Mode:</span>
-              <Button 
-                variant={role === 'student' ? 'default' : 'outline'} 
-                size="sm" 
-                className="h-6 px-2 text-[10px]"
-                onClick={() => setRole('student')}
-              >
-                Student
-              </Button>
-              <Button 
-                variant={role === 'lecturer' ? 'default' : 'outline'} 
-                size="sm" 
-                className="h-6 px-2 text-[10px]"
-                onClick={() => setRole('lecturer')}
-              >
-                Lecturer
-              </Button>
-            </div>
+        <div className="flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-2 text-xs font-mono bg-muted px-2 py-1 rounded-md border text-muted-foreground mr-2">
+            <span>Dev Mode:</span>
+            <Button
+              variant={role === 'student' ? 'default' : 'outline'}
+              size="sm"
+              className="h-6 px-2 text-[10px]"
+              onClick={() => setRole('student')}
+            >
+              Student
+            </Button>
+            <Button
+              variant={role === 'lecturer' ? 'default' : 'outline'}
+              size="sm"
+              className="h-6 px-2 text-[10px]"
+              onClick={() => setRole('lecturer')}
+            >
+              Lecturer
+            </Button>
           </div>
+        </div>
 
         <div className="flex-1 overflow-auto">{children}</div>
       </main>
