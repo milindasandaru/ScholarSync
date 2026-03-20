@@ -65,11 +65,17 @@ const inMemoryQuestions: QuestionRecord[] = [
 ];
 
 function normalize(text: string): string {
-  return text.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function tokenize(text: string): string[] {
-  return normalize(text).split(' ').filter((t) => t.length > 2);
+  return normalize(text)
+    .split(' ')
+    .filter((t) => t.length > 2);
 }
 
 function jaccard(a: Set<string>, b: Set<string>): number {
