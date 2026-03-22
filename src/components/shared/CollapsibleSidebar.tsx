@@ -22,7 +22,7 @@ interface CollapsibleSidebarProps {
 }
 
 const studentNav = [
-  { to: '/student', icon: Home, label: 'Dashboard' },
+  { to: '/hub', icon: Home, label: 'Dashboard' },
   { to: '/qna', icon: HelpCircle, label: 'My Questions' },
   { to: '/ask', icon: PlusCircle, label: 'Ask Question' },
   { to: '/forum', icon: BookOpen, label: 'Knowledge Forum' },
@@ -30,7 +30,7 @@ const studentNav = [
 ];
 
 const lecturerNav = [
-  { to: '/lecturer', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/hub', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/modules', icon: BookOpen, label: 'Manage Modules' },
   { to: '/qna', icon: HelpCircle, label: 'All Questions' },
   { to: '/forum', icon: MessageSquare, label: 'Forum' },
