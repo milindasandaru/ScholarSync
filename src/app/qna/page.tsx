@@ -7,11 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PlusCircle, Search, Loader2 } from 'lucide-react';
 import {
-  getRankedQuestions,
+  deleteQuestion,
+  getQuestionsByAuthorEmail,
   getModules,
+  updateQuestion,
   type RankedQuestion,
   type QnaModule,
 } from '@/actions/qna.actions';
+import { useAuthStore } from '@/lib/store';
 import {
   Select,
   SelectTrigger,
@@ -22,6 +25,7 @@ import {
 
 export default function QuestionsPage() {
   const router = useRouter();
+  const currentUserEmail = useAuthStore((state) => state.currentUser.email);
   const [questions, setQuestions] = useState<RankedQuestion[]>([]);
   const [modules, setModules] = useState<QnaModule[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -32,24 +36,90 @@ export default function QuestionsPage() {
   // Fetch Real Data on Mount
   useEffect(() => {
     async function fetchData() {
-      const fetchedQuestions = await getRankedQuestions();
+      const fetchedQuestions = await getQuestionsByAuthorEmail(currentUserEmail);
       const fetchedModules = await getModules();
       setQuestions(fetchedQuestions);
       setModules(fetchedModules);
       setIsLoading(false);
     }
     fetchData();
-  }, []);
+  }, [currentUserEmail]);
 
   // Filter the Ranked Questions locally
   const filtered = questions
     .filter((q) => selectedModule === 'all' || q.moduleId === selectedModule)
     .filter((q) => q.title.toLowerCase().includes(search.toLowerCase()));
 
+  const handleDeleteQuestion = async (question: RankedQuestion) => {
+    const shouldDelete = window.confirm('Delete this question permanently?');
+    if (!shouldDelete) return;
+
+    const result = await deleteQuestion(question.id, currentUserEmail);
+    if (!result.success) {
+      alert(result.message ?? 'Failed to delete question.');
+      return;
+    }
+
+    setQuestions((prev) => prev.filter((q) => q.id !== question.id));
+  };
+
+  const handleEditQuestion = async (question: RankedQuestion) => {
+    const nextTitle = window.prompt('Edit title', question.title)?.trim();
+    if (!nextTitle) return;
+
+    const nextContent = window.prompt('Edit details', question.content)?.trim();
+    if (!nextContent) return;
+
+    const nextTagsRaw = window.prompt('Edit tags (comma separated)', question.tags.join(', '));
+    if (nextTagsRaw == null) return;
+
+    const nextBountyRaw = window.prompt('Edit bounty points', String(question.bounty));
+    if (nextBountyRaw == null) return;
+
+    const nextBounty = Number(nextBountyRaw);
+    if (!Number.isFinite(nextBounty) || nextBounty < 0) {
+      alert('Bounty must be a non-negative number.');
+      return;
+    }
+
+    const nextTags = nextTagsRaw
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+
+    const result = await updateQuestion({
+      id: question.id,
+      title: nextTitle,
+      content: nextContent,
+      tags: nextTags,
+      bounty: nextBounty,
+      authorEmail: currentUserEmail,
+    });
+
+    if (!result.success) {
+      alert(result.message ?? 'Failed to update question.');
+      return;
+    }
+
+    setQuestions((prev) =>
+      prev.map((q) =>
+        q.id === question.id
+          ? {
+              ...q,
+              title: nextTitle,
+              content: nextContent,
+              tags: nextTags,
+              bounty: nextBounty,
+            }
+          : q
+      )
+    );
+  };
+
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-4xl mx-auto animate-fade-in">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl md:text-2xl font-bold">Q&A Feed</h2>
+        <h2 className="text-xl md:text-2xl font-bold">My Questions</h2>
         <Button size="sm" onClick={() => router.push('/ask')}>
           <PlusCircle className="h-4 w-4 mr-1" /> Ask Question
         </Button>
@@ -88,7 +158,15 @@ export default function QuestionsPage() {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : filtered.length > 0 ? (
-          filtered.map((q) => <QuestionCard key={q.id} question={q} />)
+          filtered.map((q) => (
+            <QuestionCard
+              key={q.id}
+              question={q}
+              showActions
+              onEdit={handleEditQuestion}
+              onDelete={handleDeleteQuestion}
+            />
+          ))
         ) : (
           <p className="text-center text-muted-foreground py-12">No questions found.</p>
         )}

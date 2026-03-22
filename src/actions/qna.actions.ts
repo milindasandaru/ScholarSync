@@ -36,7 +36,7 @@ import type { Prisma } from '@prisma/client';
 //   return similar;
 // }
 
-export async function checkSimilarQuestions(title: string) {
+export async function checkSimilarQuestions(title: string, moduleCode?: string) {
   if (!title || title.trim().length < 10) return [];
 
   // 1. Stop words
@@ -76,8 +76,17 @@ export async function checkSimilarQuestions(title: string) {
   // 4. Expand with synonyms
   const keywords = baseKeywords.flatMap((k) => [k, ...(synonyms[k] || [])]);
 
+  const moduleFilter = moduleCode
+    ? await prisma.module.findUnique({ where: { code: moduleCode }, select: { id: true } })
+    : null;
+
   // 5. Get candidate questions (broad match first)
   const candidates = await prisma.question.findMany({
+    where: moduleFilter
+      ? {
+          moduleId: moduleFilter.id,
+        }
+      : undefined,
     select: {
       id: true,
       title: true,
@@ -103,12 +112,13 @@ export async function checkSimilarQuestions(title: string) {
     return {
       ...q,
       score,
+      matchCount,
     };
   });
 
-  // 7. Filter + sort
+  // 7. Filter + sort. Require meaningful keyword overlap to avoid noisy warnings.
   return scored
-    .filter((q) => q.score > 0)
+    .filter((q) => q.matchCount >= 2)
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
 }
@@ -154,6 +164,63 @@ export async function createQuestion(data: {
   }
 }
 
+export async function updateQuestion(data: {
+  id: string;
+  title: string;
+  content: string;
+  tags: string[];
+  bounty: number;
+  authorEmail: string;
+}) {
+  try {
+    const owner = await prisma.user.findUnique({ where: { email: data.authorEmail } });
+    if (!owner) return { success: false, message: 'Invalid user.' };
+
+    const question = await prisma.question.findUnique({ where: { id: data.id } });
+    if (!question || question.authorId !== owner.id) {
+      return { success: false, message: 'You are not allowed to edit this question.' };
+    }
+
+    await prisma.question.update({
+      where: { id: data.id },
+      data: {
+        title: data.title,
+        content: data.content,
+        tags: data.tags,
+        bounty: data.bounty,
+      },
+    });
+
+    revalidatePath('/qna');
+    revalidatePath(`/qna/${data.id}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to update question:', error);
+    return { success: false, message: 'Database error.' };
+  }
+}
+
+export async function deleteQuestion(questionId: string, authorEmail: string) {
+  try {
+    const owner = await prisma.user.findUnique({ where: { email: authorEmail } });
+    if (!owner) return { success: false, message: 'Invalid user.' };
+
+    const question = await prisma.question.findUnique({ where: { id: questionId } });
+    if (!question || question.authorId !== owner.id) {
+      return { success: false, message: 'You are not allowed to delete this question.' };
+    }
+
+    await prisma.answer.deleteMany({ where: { questionId } });
+    await prisma.question.delete({ where: { id: questionId } });
+
+    revalidatePath('/qna');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to delete question:', error);
+    return { success: false, message: 'Database error.' };
+  }
+}
+
 // ==========================================
 // 3. GET RANKED FEED (REAL DB QUERY)
 // ==========================================
@@ -168,6 +235,28 @@ export async function getRankedQuestions() {
   });
 
   // Sort by Upvotes + Bounty
+  return questions.sort((a, b) => {
+    const scoreA = a.upvotes * 2 + a.bounty * 5;
+    const scoreB = b.upvotes * 2 + b.bounty * 5;
+    return scoreB - scoreA;
+  });
+}
+
+export async function getQuestionsByAuthorEmail(authorEmail: string) {
+  const questions = await prisma.question.findMany({
+    where: {
+      author: {
+        email: authorEmail,
+      },
+    },
+    include: {
+      author: true,
+      module: true,
+      answers: { include: { author: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
   return questions.sort((a, b) => {
     const scoreA = a.upvotes * 2 + a.bounty * 5;
     const scoreB = b.upvotes * 2 + b.bounty * 5;
@@ -198,6 +287,84 @@ export async function getQuestionById(id: string) {
         orderBy: { upvotes: 'desc' }, // Sort answers by upvotes naturally
       },
     },
+  });
+}
+
+export async function voteQuestion(questionId: string, direction: 'up' | 'down') {
+  const delta = direction === 'up' ? 1 : -1;
+  const updated = await prisma.question.update({
+    where: { id: questionId },
+    data: {
+      upvotes: {
+        increment: delta,
+      },
+    },
+  });
+
+  revalidatePath('/qna');
+  revalidatePath(`/qna/${questionId}`);
+  return { success: true, upvotes: updated.upvotes };
+}
+
+export async function voteAnswer(answerId: string, direction: 'up' | 'down') {
+  const delta = direction === 'up' ? 1 : -1;
+  const updated = await prisma.answer.update({
+    where: { id: answerId },
+    data: {
+      upvotes: {
+        increment: delta,
+      },
+    },
+    select: {
+      upvotes: true,
+      questionId: true,
+    },
+  });
+
+  revalidatePath(`/qna/${updated.questionId}`);
+  return { success: true, upvotes: updated.upvotes };
+}
+
+export async function addAnswer(data: {
+  questionId: string;
+  content: string;
+  authorEmail: string;
+}) {
+  try {
+    const author = await prisma.user.findUnique({ where: { email: data.authorEmail } });
+    if (!author) return { success: false, message: 'Invalid user.' };
+    if (!data.content.trim()) return { success: false, message: 'Answer cannot be empty.' };
+
+    await prisma.answer.create({
+      data: {
+        questionId: data.questionId,
+        content: data.content.trim(),
+        authorId: author.id,
+      },
+    });
+
+    revalidatePath(`/qna/${data.questionId}`);
+    revalidatePath('/qna');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to add answer:', error);
+    return { success: false, message: 'Database error.' };
+  }
+}
+
+export async function getSimilarQuestionsByModule(moduleId: string, currentQuestionId: string) {
+  return prisma.question.findMany({
+    where: {
+      moduleId,
+      NOT: { id: currentQuestionId },
+    },
+    include: {
+      author: true,
+      module: true,
+      answers: { include: { author: true } },
+    },
+    orderBy: [{ upvotes: 'desc' }, { createdAt: 'desc' }],
+    take: 6,
   });
 }
 
