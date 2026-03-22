@@ -5,7 +5,20 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, Loader2 } from 'lucide-react';
-import { checkSimilarQuestions, createQuestion } from '@/actions/qna.actions';
+import {
+  checkSimilarQuestions,
+  createQuestion,
+  getModules,
+  type QnaModule,
+} from '@/actions/qna.actions';
+import { useAuthStore } from '@/lib/store';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 type SimilarQuestion = {
   id: string;
@@ -16,35 +29,50 @@ type SimilarQuestion = {
 
 export default function AskQuestionPage() {
   const router = useRouter();
+  const currentUserEmail = useAuthStore((state) => state.currentUser.email);
 
   // FOrm State
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [tags, setTags] = useState('');
   const [bounty, setBounty] = useState(0);
+  const [modules, setModules] = useState<QnaModule[]>([]);
+  const [selectedModuleCode, setSelectedModuleCode] = useState<string>('');
 
   // Smart search state
   const [similarQuestions, setSimilarQuestions] = useState<SimilarQuestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    async function fetchModules() {
+      const fetchedModules = await getModules();
+      setModules(fetchedModules);
+      if (fetchedModules.length > 0) {
+        setSelectedModuleCode(fetchedModules[0].code);
+      }
+    }
+
+    fetchModules();
+  }, []);
+
   // This useEffect runs the duplicate Detection Algorith
   useEffect(() => {
     // Only search after a meaningful title length.
-    if (title.length < 10) {
+    if (title.trim().length < 10 || !selectedModuleCode) {
       return;
     }
 
     // "debounce" the search to it doesn't query the DB on every single keystroke
     const timer = setTimeout(async () => {
       setIsSearching(true);
-      const results = await checkSimilarQuestions(title);
+      const results = await checkSimilarQuestions(title, selectedModuleCode);
       setSimilarQuestions(results);
       setIsSearching(false);
     }, 500); // wait for 500ms of inactivity before searching
 
     return () => clearTimeout(timer);
-  }, [title]);
+  }, [title, selectedModuleCode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,8 +85,8 @@ export default function AskQuestionPage() {
       content,
       tags: tags.split(',').map((tag) => tag.trim()),
       bounty: Number(bounty),
-      moduleId: 'IT3040', // In a real app, this would be selected by the user
-      authorId: 'sams@student.sliit.lk', // This would come from your auth system
+      moduleId: selectedModuleCode,
+      authorId: currentUserEmail,
     });
 
     if (result.success) {
@@ -85,8 +113,8 @@ export default function AskQuestionPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-3">
-                We found these similar questions in the IT3040 module. Check them out before
-                posting:
+                We found these similar questions in the {selectedModuleCode || 'selected'} module.
+                Check them out before posting:
               </p>
               <ul className="space-y-2">
                 {similarQuestions.map((q) => (
@@ -133,6 +161,29 @@ export default function AskQuestionPage() {
                 </p>
               </div>
 
+              {/* Module Input */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Module</label>
+                <Select
+                  value={selectedModuleCode}
+                  onValueChange={(value) => {
+                    setSelectedModuleCode(value);
+                    setSimilarQuestions([]);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select module" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {modules.map((module) => (
+                      <SelectItem key={module.id} value={module.code}>
+                        {module.code} - {module.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* Content Input */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Details</label>
@@ -177,8 +228,14 @@ export default function AskQuestionPage() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? 'Posting...' : 'Post Question to IT3040'}
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isSubmitting || !selectedModuleCode}
+              >
+                {isSubmitting
+                  ? 'Posting...'
+                  : `Post Question${selectedModuleCode ? ` to ${selectedModuleCode}` : ''}`}
               </Button>
             </CardContent>
           </Card>
