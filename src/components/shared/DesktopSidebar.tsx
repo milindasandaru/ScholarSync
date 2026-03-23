@@ -4,12 +4,13 @@ import {
   Home,
   MessageSquare,
   PlusCircle,
-  /* Award, */ User,
+  User,
   LayoutDashboard,
   BookOpen,
-  /*BarChart3, */ HelpCircle,
+  HelpCircle,
   LogOut,
   BarChart3,
+  Users,
 } from 'lucide-react';
 import { NavLink } from '../NavLink';
 import { useRouter } from 'next/navigation'; // Changed from react-router-dom
@@ -29,6 +30,7 @@ const studentNav = [
   { to: '/ask', icon: PlusCircle, label: 'Ask Question' },
   { to: '/forum', icon: BookOpen, label: 'Knowledge Forum' },
   { to: '/profile', icon: User, label: 'Profile' },
+  { to: '/community', icon: Users, label: 'Community' },
 ];
 
 const lecturerNav = [
@@ -38,6 +40,7 @@ const lecturerNav = [
   { to: '/forum', icon: MessageSquare, label: 'Forum' },
   { to: '/analytics', icon: BarChart3, label: 'Analytics' },
   { to: '/profile', icon: User, label: 'Profile' },
+  { to: '/community', icon: Users, label: 'Community' },
 ];
 
 export function DesktopSidebar({ role }: DesktopSidebarProps) {
