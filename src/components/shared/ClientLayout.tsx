@@ -7,14 +7,13 @@ import { CollapsibleSidebar } from './CollapsibleSidebar';
 import { DesktopSidebar } from './DesktopSidebar';
 import { Menu } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
-import { Button } from '../ui/button';
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
 
   // get the current role from the store
-  const { role, setRole } = useAuthStore();
+  const { role /*, setRole*/ } = useAuthStore();
 
   const publicRoutes = ['/', '/login', '/register'];
   const isPublicRoute = publicRoutes.includes(pathname);
@@ -43,29 +42,6 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
               <span className="text-primary">Scholar</span>
               <span className="text-accent">Sync</span>
             </h1>
-          </div>
-        </div>
-
-        {/* DEV MODE TOGGLE: Switch roles instantly */}
-        <div className="flex items-center gap-2">
-          <div className="hidden md:flex items-center gap-2 text-xs font-mono bg-muted px-2 py-1 rounded-md border text-muted-foreground mr-2">
-            <span>Dev Mode:</span>
-            <Button
-              variant={role === 'student' ? 'default' : 'outline'}
-              size="sm"
-              className="h-6 px-2 text-[10px]"
-              onClick={() => setRole('student')}
-            >
-              Student
-            </Button>
-            <Button
-              variant={role === 'lecturer' ? 'default' : 'outline'}
-              size="sm"
-              className="h-6 px-2 text-[10px]"
-              onClick={() => setRole('lecturer')}
-            >
-              Lecturer
-            </Button>
           </div>
         </div>
 
