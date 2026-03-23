@@ -55,6 +55,26 @@ async function main() {
     },
   });
 
+  // 3.1 Assign lecturer to modules for lecturer dashboard filtering
+  await prisma.user.update({
+    where: { id: lecturer.id },
+    data: {
+      moduleAssignments: {
+        connectOrCreate: {
+          where: {
+            lecturerId_moduleId: {
+              lecturerId: lecturer.id,
+              moduleId: itpm.id,
+            },
+          },
+          create: {
+            moduleId: itpm.id,
+          },
+        },
+      },
+    },
+  });
+
   // 4. Create Multiple Questions to Test "Smart Search" and "Ranking"
 
   // Question A: The original one (High Bounty)
