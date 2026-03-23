@@ -36,51 +36,71 @@ import type { Prisma } from '@prisma/client';
 //   return similar;
 // }
 
+const STOP_WORDS = new Set([
+  'how',
+  'to',
+  'what',
+  'is',
+  'the',
+  'a',
+  'an',
+  'for',
+  'in',
+  'of',
+  'and',
+  'when',
+  'do',
+  'we',
+  'with',
+  'on',
+  'at',
+  'by',
+  'from',
+]);
+
+const SYNONYMS: Record<string, string[]> = {
+  login: ['signin', 'sign', 'log'],
+  error: ['issue', 'problem', 'bug'],
+  deploy: ['deployment', 'release'],
+  deployment: ['deploy', 'release'],
+  deadline: ['due', 'submission'],
+  submission: ['submit', 'deadline'],
+};
+
+function tokenize(text: string) {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .map((word) => word.trim())
+    .filter((word) => word.length > 2 && !STOP_WORDS.has(word));
+}
+
+function buildKeywordSet(text: string) {
+  const terms = tokenize(text);
+  const expanded = terms.flatMap((word) => [word, ...(SYNONYMS[word] || [])]);
+  return new Set(expanded);
+}
+
+function normalizeForExactMatch(text: string) {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export async function checkSimilarQuestions(title: string, moduleCode?: string) {
   if (!title || title.trim().length < 10) return [];
 
-  // 1. Stop words
-  const stopWords = [
-    'how',
-    'to',
-    'what',
-    'is',
-    'the',
-    'a',
-    'an',
-    'for',
-    'in',
-    'of',
-    'and',
-    'when',
-    'do',
-    'we',
-  ];
-
-  // 2. Synonyms (simple but powerful)
-  const synonyms: Record<string, string[]> = {
-    login: ['signin', 'sign', 'log'],
-    error: ['issue', 'problem', 'bug'],
-    deploy: ['deployment', 'release'],
-  };
-
-  // 3. Clean + tokenize
-  const baseKeywords = title
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .split(' ')
-    .filter((word) => word.length > 2 && !stopWords.includes(word));
-
-  if (baseKeywords.length === 0) return [];
-
-  // 4. Expand with synonyms
-  const keywords = baseKeywords.flatMap((k) => [k, ...(synonyms[k] || [])]);
+  const normalizedInput = normalizeForExactMatch(title);
+  const inputTerms = buildKeywordSet(title);
 
   const moduleFilter = moduleCode
     ? await prisma.module.findUnique({ where: { code: moduleCode }, select: { id: true } })
     : null;
 
-  // 5. Get candidate questions (broad match first)
+  // 1. Get candidate questions for module/global scope.
   const candidates = await prisma.question.findMany({
     where: moduleFilter
       ? {
@@ -94,31 +114,30 @@ export async function checkSimilarQuestions(title: string, moduleCode?: string) 
     },
   });
 
-  // 6. Score each question
+  // 2. Score each question for exact and high-overlap relevance.
   const scored = candidates.map((q) => {
-    const titleWords = q.title.toLowerCase().split(/\s+/);
+    const candidateTerms = buildKeywordSet(q.title);
+    const intersection = [...inputTerms].filter((term) => candidateTerms.has(term)).length;
+    const union = new Set([...inputTerms, ...candidateTerms]).size;
+    const overlap = union > 0 ? intersection / union : 0;
 
-    let matchCount = 0;
+    const normalizedCandidate = normalizeForExactMatch(q.title);
+    const isExactMatch = normalizedInput === normalizedCandidate;
 
-    keywords.forEach((k) => {
-      if (titleWords.includes(k)) {
-        matchCount++;
-      }
-    });
-
-    // Weighted score
-    const score = matchCount + q.upvotes * 0.1;
+    const score = overlap * 100 + q.upvotes * 0.05 + (isExactMatch ? 100 : 0);
 
     return {
       ...q,
       score,
-      matchCount,
+      overlap,
+      intersection,
+      isExactMatch,
     };
   });
 
-  // 7. Filter + sort. Require meaningful keyword overlap to avoid noisy warnings.
+  // 3. Keep only genuine similarity to avoid noisy duplicate warnings.
   return scored
-    .filter((q) => q.matchCount >= 2)
+    .filter((q) => q.isExactMatch || q.intersection >= 2 || q.overlap >= 0.45)
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
 }
@@ -290,20 +309,98 @@ export async function getQuestionById(id: string) {
   });
 }
 
-export async function voteQuestion(questionId: string, direction: 'up' | 'down') {
-  const delta = direction === 'up' ? 1 : -1;
-  const updated = await prisma.question.update({
-    where: { id: questionId },
-    data: {
-      upvotes: {
-        increment: delta,
-      },
-    },
-  });
+export async function voteQuestion(
+  questionId: string,
+  direction: 'up' | 'down',
+  voterEmail: string
+) {
+  try {
+    const voter = await prisma.user.findUnique({ where: { email: voterEmail } });
+    if (!voter) return { success: false, message: 'Invalid user.' };
 
-  revalidatePath('/qna');
-  revalidatePath(`/qna/${questionId}`);
-  return { success: true, upvotes: updated.upvotes };
+    const question = await prisma.question.findUnique({
+      where: { id: questionId },
+      select: { id: true, authorId: true },
+    });
+    if (!question) return { success: false, message: 'Question not found.' };
+
+    if (question.authorId === voter.id) {
+      return { success: false, message: 'You cannot vote on your own question.' };
+    }
+
+    const targetValue = direction === 'up' ? 1 : -1;
+
+    const payload = await prisma.$transaction(async (tx) => {
+      const existingVote = await tx.vote.findUnique({
+        where: {
+          userId_questionId: {
+            userId: voter.id,
+            questionId,
+          },
+        },
+      });
+
+      if (!existingVote) {
+        await tx.vote.create({
+          data: {
+            userId: voter.id,
+            questionId,
+            value: targetValue,
+          },
+        });
+
+        const updatedQuestion = await tx.question.update({
+          where: { id: questionId },
+          data: { upvotes: { increment: targetValue } },
+          select: { upvotes: true },
+        });
+
+        return { success: true, upvotes: updatedQuestion.upvotes, message: 'Vote recorded.' };
+      }
+
+      if (existingVote.value === targetValue) {
+        const current = await tx.question.findUnique({
+          where: { id: questionId },
+          select: { upvotes: true },
+        });
+        return {
+          success: false,
+          upvotes: current?.upvotes ?? 0,
+          message: 'You already cast this vote.',
+        };
+      }
+
+      await tx.vote.update({
+        where: {
+          userId_questionId: {
+            userId: voter.id,
+            questionId,
+          },
+        },
+        data: { value: targetValue },
+      });
+
+      const updatedQuestion = await tx.question.update({
+        where: { id: questionId },
+        data: { upvotes: { increment: targetValue * 2 } },
+        select: { upvotes: true },
+      });
+
+      return {
+        success: true,
+        upvotes: updatedQuestion.upvotes,
+        message: 'Vote updated.',
+      };
+    });
+
+    revalidatePath('/qna');
+    revalidatePath(`/qna/${questionId}`);
+    revalidatePath('/lecturer');
+    return payload;
+  } catch (error) {
+    console.error('Failed to vote question:', error);
+    return { success: false, message: 'Database error.' };
+  }
 }
 
 export async function voteAnswer(answerId: string, direction: 'up' | 'down') {
@@ -323,6 +420,48 @@ export async function voteAnswer(answerId: string, direction: 'up' | 'down') {
 
   revalidatePath(`/qna/${updated.questionId}`);
   return { success: true, upvotes: updated.upvotes };
+}
+
+export async function getLecturerAssignedQuestions(lecturerEmail: string) {
+  const lecturer = await prisma.user.findUnique({
+    where: { email: lecturerEmail },
+    include: {
+      moduleAssignments: {
+        select: {
+          moduleId: true,
+        },
+      },
+    },
+  });
+
+  if (!lecturer) return [];
+
+  const assignedModuleIds = lecturer.moduleAssignments.map((assignment) => assignment.moduleId);
+  if (assignedModuleIds.length === 0) return [];
+
+  const questions = await prisma.question.findMany({
+    where: {
+      moduleId: {
+        in: assignedModuleIds,
+      },
+    },
+    include: {
+      author: true,
+      module: true,
+      answers: { include: { author: true } },
+    },
+  });
+
+  return questions.sort((a, b) => b.upvotes + b.bounty - (a.upvotes + a.bounty));
+}
+
+export async function lecturerRecommendQuestion(questionId: string, lecturerEmail: string) {
+  const lecturer = await prisma.user.findUnique({ where: { email: lecturerEmail } });
+  if (!lecturer || lecturer.role === 'STUDENT') {
+    return { success: false, message: 'Only lecturer/admin can recommend questions.' };
+  }
+
+  return voteQuestion(questionId, 'up', lecturerEmail);
 }
 
 export async function addAnswer(data: {
