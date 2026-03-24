@@ -4,14 +4,7 @@
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import type { Prisma } from '@prisma/client';
-
-function isDatabaseConnectionError(error: unknown) {
-  if (!(error instanceof Error)) return false;
-  return (
-    error.message.includes("Can't reach database server") ||
-    error.message.includes('PrismaClientInitializationError')
-  );
-}
+import { getAuthSession } from '@/lib/auth';
 
 // ==========================================
 // 1. SMART DUPLICATE DETECTION (REAL DB QUERY)
@@ -159,15 +152,18 @@ export async function createQuestion(data: {
   tags: string[];
   bounty: number;
   moduleId: string;
-  authorId: string;
 }) {
   try {
-    // 1. Find the actual Module ID and User ID from the database based on the codes
-    const moduleRecord = await prisma.module.findUnique({ where: { code: data.moduleId } });
-    const author = await prisma.user.findUnique({ where: { email: data.authorId } });
+    const session = await getAuthSession();
+    if (!session?.user?.id) {
+      return { success: false, message: 'Unauthorized.' };
+    }
 
-    if (!moduleRecord || !author) {
-      return { success: false, message: 'Invalid module or user.' };
+    // 1. Find the actual Module ID from the database based on the code
+    const moduleRecord = await prisma.module.findUnique({ where: { code: data.moduleId } });
+
+    if (!moduleRecord) {
+      return { success: false, message: 'Invalid module.' };
     }
 
     // 2. Create the question in Supabase
@@ -178,7 +174,7 @@ export async function createQuestion(data: {
         tags: data.tags,
         bounty: data.bounty,
         moduleId: moduleRecord.id, // Use the real DB ID
-        authorId: author.id, // Use the real DB ID
+        authorId: session.user.id,
       },
     });
 
@@ -197,14 +193,13 @@ export async function updateQuestion(data: {
   content: string;
   tags: string[];
   bounty: number;
-  authorEmail: string;
 }) {
   try {
-    const owner = await prisma.user.findUnique({ where: { email: data.authorEmail } });
-    if (!owner) return { success: false, message: 'Invalid user.' };
+    const session = await getAuthSession();
+    if (!session?.user?.id) return { success: false, message: 'Unauthorized.' };
 
     const question = await prisma.question.findUnique({ where: { id: data.id } });
-    if (!question || question.authorId !== owner.id) {
+    if (!question || question.authorId !== session.user.id) {
       return { success: false, message: 'You are not allowed to edit this question.' };
     }
 
@@ -227,13 +222,13 @@ export async function updateQuestion(data: {
   }
 }
 
-export async function deleteQuestion(questionId: string, authorEmail: string) {
+export async function deleteQuestion(questionId: string) {
   try {
-    const owner = await prisma.user.findUnique({ where: { email: authorEmail } });
-    if (!owner) return { success: false, message: 'Invalid user.' };
+    const session = await getAuthSession();
+    if (!session?.user?.id) return { success: false, message: 'Unauthorized.' };
 
     const question = await prisma.question.findUnique({ where: { id: questionId } });
-    if (!question || question.authorId !== owner.id) {
+    if (!question || question.authorId !== session.user.id) {
       return { success: false, message: 'You are not allowed to delete this question.' };
     }
 
@@ -252,111 +247,76 @@ export async function deleteQuestion(questionId: string, authorEmail: string) {
 // 3. GET RANKED FEED (REAL DB QUERY)
 // ==========================================
 export async function getRankedQuestions() {
-  try {
-    const questions = await prisma.question.findMany({
-      include: {
-        author: true,
-        module: true,
-        answers: { include: { author: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+  const questions = await prisma.question.findMany({
+    include: {
+      author: true,
+      module: true,
+      answers: { include: { author: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
 
-    // Sort by Upvotes + Bounty
-    return questions.sort((a, b) => {
-      const scoreA = a.upvotes * 2 + a.bounty * 5;
-      const scoreB = b.upvotes * 2 + b.bounty * 5;
-      return scoreB - scoreA;
-    });
-  } catch (error) {
-    if (isDatabaseConnectionError(error)) {
-      console.error('Database unreachable while loading ranked questions:', error);
-      return [];
-    }
-    throw error;
-  }
+  // Sort by Upvotes + Bounty
+  return questions.sort((a, b) => {
+    const scoreA = a.upvotes * 2 + a.bounty * 5;
+    const scoreB = b.upvotes * 2 + b.bounty * 5;
+    return scoreB - scoreA;
+  });
 }
 
-export async function getQuestionsByAuthorEmail(authorEmail: string) {
-  try {
-    const questions = await prisma.question.findMany({
-      where: {
-        author: {
-          email: authorEmail,
-        },
-      },
-      include: {
-        author: true,
-        module: true,
-        answers: { include: { author: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+export async function getMyQuestions() {
+  const session = await getAuthSession();
+  if (!session?.user?.id) return [];
 
-    return questions.sort((a, b) => {
-      const scoreA = a.upvotes * 2 + a.bounty * 5;
-      const scoreB = b.upvotes * 2 + b.bounty * 5;
-      return scoreB - scoreA;
-    });
-  } catch (error) {
-    if (isDatabaseConnectionError(error)) {
-      console.error('Database unreachable while loading user questions:', error);
-      return [];
-    }
-    throw error;
-  }
+  const questions = await prisma.question.findMany({
+    where: {
+      authorId: session.user.id,
+    },
+    include: {
+      author: true,
+      module: true,
+      answers: { include: { author: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return questions.sort((a, b) => {
+    const scoreA = a.upvotes * 2 + a.bounty * 5;
+    const scoreB = b.upvotes * 2 + b.bounty * 5;
+    return scoreB - scoreA;
+  });
 }
 
 // ==========================================
 // 4. GET ALL MODULES (For Dropdown)
 // ==========================================
 export async function getModules() {
-  try {
-    return await prisma.module.findMany({
-      orderBy: { name: 'asc' },
-    });
-  } catch (error) {
-    if (isDatabaseConnectionError(error)) {
-      console.error('Database unreachable while loading modules:', error);
-      return [];
-    }
-    throw error;
-  }
+  return await prisma.module.findMany({
+    orderBy: { name: 'asc' },
+  });
 }
 
 // ==========================================
 // 5. GET SINGLE QUESTION DETAIL
 // ==========================================
 export async function getQuestionById(id: string) {
-  try {
-    return await prisma.question.findUnique({
-      where: { id },
-      include: {
-        author: true,
-        module: true,
-        answers: {
-          include: { author: true },
-          orderBy: { upvotes: 'desc' }, // Sort answers by upvotes naturally
-        },
+  return await prisma.question.findUnique({
+    where: { id },
+    include: {
+      author: true,
+      module: true,
+      answers: {
+        include: { author: true },
+        orderBy: { upvotes: 'desc' }, // Sort answers by upvotes naturally
       },
-    });
-  } catch (error) {
-    if (isDatabaseConnectionError(error)) {
-      console.error('Database unreachable while loading question details:', error);
-      return null;
-    }
-    throw error;
-  }
+    },
+  });
 }
 
-export async function voteQuestion(
-  questionId: string,
-  direction: 'up' | 'down',
-  voterEmail: string
-) {
+export async function voteQuestion(questionId: string, direction: 'up' | 'down') {
   try {
-    const voter = await prisma.user.findUnique({ where: { email: voterEmail } });
-    if (!voter) return { success: false, message: 'Invalid user.' };
+    const session = await getAuthSession();
+    if (!session?.user?.id) return { success: false, message: 'Unauthorized.' };
 
     const question = await prisma.question.findUnique({
       where: { id: questionId },
@@ -364,7 +324,7 @@ export async function voteQuestion(
     });
     if (!question) return { success: false, message: 'Question not found.' };
 
-    if (question.authorId === voter.id) {
+    if (question.authorId === session.user.id) {
       return { success: false, message: 'You cannot vote on your own question.' };
     }
 
@@ -374,7 +334,7 @@ export async function voteQuestion(
       const existingVote = await tx.vote.findUnique({
         where: {
           userId_questionId: {
-            userId: voter.id,
+            userId: session.user.id,
             questionId,
           },
         },
@@ -383,7 +343,7 @@ export async function voteQuestion(
       if (!existingVote) {
         await tx.vote.create({
           data: {
-            userId: voter.id,
+            userId: session.user.id,
             questionId,
             value: targetValue,
           },
@@ -413,7 +373,7 @@ export async function voteQuestion(
       await tx.vote.update({
         where: {
           userId_questionId: {
-            userId: voter.id,
+            userId: session.user.id,
             questionId,
           },
         },
@@ -462,9 +422,12 @@ export async function voteAnswer(answerId: string, direction: 'up' | 'down') {
   return { success: true, upvotes: updated.upvotes };
 }
 
-export async function getLecturerAssignedQuestions(lecturerEmail: string) {
+export async function getLecturerAssignedQuestions() {
+  const session = await getAuthSession();
+  if (!session?.user?.id) return [];
+
   const lecturer = await prisma.user.findUnique({
-    where: { email: lecturerEmail },
+    where: { id: session.user.id },
     include: {
       moduleAssignments: {
         select: {
@@ -495,30 +458,31 @@ export async function getLecturerAssignedQuestions(lecturerEmail: string) {
   return questions.sort((a, b) => b.upvotes + b.bounty - (a.upvotes + a.bounty));
 }
 
-export async function lecturerRecommendQuestion(questionId: string, lecturerEmail: string) {
-  const lecturer = await prisma.user.findUnique({ where: { email: lecturerEmail } });
+export async function lecturerRecommendQuestion(questionId: string) {
+  const session = await getAuthSession();
+  if (!session?.user?.id) {
+    return { success: false, message: 'Unauthorized.' };
+  }
+
+  const lecturer = await prisma.user.findUnique({ where: { id: session.user.id } });
   if (!lecturer || lecturer.role === 'STUDENT') {
     return { success: false, message: 'Only lecturer/admin can recommend questions.' };
   }
 
-  return voteQuestion(questionId, 'up', lecturerEmail);
+  return voteQuestion(questionId, 'up');
 }
 
-export async function addAnswer(data: {
-  questionId: string;
-  content: string;
-  authorEmail: string;
-}) {
+export async function addAnswer(data: { questionId: string; content: string }) {
   try {
-    const author = await prisma.user.findUnique({ where: { email: data.authorEmail } });
-    if (!author) return { success: false, message: 'Invalid user.' };
+    const session = await getAuthSession();
+    if (!session?.user?.id) return { success: false, message: 'Unauthorized.' };
     if (!data.content.trim()) return { success: false, message: 'Answer cannot be empty.' };
 
     await prisma.answer.create({
       data: {
         questionId: data.questionId,
         content: data.content.trim(),
-        authorId: author.id,
+        authorId: session.user.id,
       },
     });
 
