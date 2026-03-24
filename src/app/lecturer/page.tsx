@@ -11,27 +11,25 @@ import {
   lecturerRecommendQuestion,
   type RankedQuestion,
 } from '@/actions/qna.actions';
-import { useAuthStore } from '@/lib/store';
 
 const LecturerPage = () => {
-  const currentUser = useAuthStore((state) => state.currentUser);
   const [questions, setQuestions] = useState<RankedQuestion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [pendingRecommendId, setPendingRecommendId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchQuestions() {
-      const data = await getLecturerAssignedQuestions(currentUser.email);
+      const data = await getLecturerAssignedQuestions();
       setQuestions(data);
       setIsLoading(false);
     }
 
     fetchQuestions();
-  }, [currentUser.email]);
+  }, []);
 
   const handleRecommend = async (questionId: string) => {
     setPendingRecommendId(questionId);
-    const result = await lecturerRecommendQuestion(questionId, currentUser.email);
+    const result = await lecturerRecommendQuestion(questionId);
 
     if (!result.success || !('upvotes' in result) || typeof result.upvotes !== 'number') {
       alert(result.message ?? 'Unable to recommend this question.');
@@ -39,7 +37,7 @@ const LecturerPage = () => {
       return;
     }
 
-    const refreshed = await getLecturerAssignedQuestions(currentUser.email);
+    const refreshed = await getLecturerAssignedQuestions();
     setQuestions(refreshed);
     setPendingRecommendId(null);
   };

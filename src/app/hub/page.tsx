@@ -1,18 +1,19 @@
 'use client';
 
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { HelpCircle, MessageSquare } from 'lucide-react';
-import { useAuthStore } from '@/lib/store';
 
 export default function HubPage() {
-  const { currentUser, role } = useAuthStore();
+  const { data: session } = useSession();
+  const role = session?.user?.role?.toLowerCase() ?? 'student';
 
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold">Welcome back, {currentUser.name}</h1>
+        <h1 className="text-2xl md:text-3xl font-bold">Welcome back, {session?.user?.name}</h1>
         <p className="text-sm text-muted-foreground mt-1 capitalize">
           {role} hub: choose where you want to continue.
         </p>
