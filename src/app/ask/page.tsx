@@ -11,7 +11,6 @@ import {
   getModules,
   type QnaModule,
 } from '@/actions/qna.actions';
-import { useAuthStore } from '@/lib/store';
 import {
   Select,
   SelectContent,
@@ -29,7 +28,6 @@ type SimilarQuestion = {
 
 export default function AskQuestionPage() {
   const router = useRouter();
-  const currentUserEmail = useAuthStore((state) => state.currentUser.email);
 
   // FOrm State
   const [title, setTitle] = useState('');
@@ -86,7 +84,6 @@ export default function AskQuestionPage() {
       tags: tags.split(',').map((tag) => tag.trim()),
       bounty: Number(bounty),
       moduleId: selectedModuleCode,
-      authorId: currentUserEmail,
     });
 
     if (result.success) {
@@ -121,6 +118,7 @@ export default function AskQuestionPage() {
                   <li
                     key={q.id}
                     className="text-sm font-medium hover:underline cursor-pointer text-primary"
+                    onClick={() => router.push(`/qna/${q.id}`)}
                   >
                     {q.title} ({q.upvotes} upvotes)
                   </li>

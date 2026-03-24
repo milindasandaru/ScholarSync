@@ -17,12 +17,10 @@ import {
   type QuestionDetail,
   type RankedQuestion,
 } from '@/actions/qna.actions';
-import { useAuthStore } from '@/lib/store';
 
 export default function QuestionDetail() {
   const params = useParams();
   const id = params.id as string;
-  const currentUserEmail = useAuthStore((state) => state.currentUser.email);
 
   const [question, setQuestion] = useState<QuestionDetail | null>(null);
   const [similarQuestions, setSimilarQuestions] = useState<RankedQuestion[]>([]);
@@ -50,7 +48,7 @@ export default function QuestionDetail() {
 
   const handleVoteQuestion = async (direction: 'up' | 'down') => {
     if (!question) return;
-    const result = await voteQuestion(question.id, direction, currentUserEmail);
+    const result = await voteQuestion(question.id, direction);
     if (!result.success) {
       alert(result.message ?? 'Unable to cast vote.');
       return;
@@ -70,7 +68,6 @@ export default function QuestionDetail() {
     const result = await addAnswer({
       questionId: question.id,
       content: answerText,
-      authorEmail: currentUserEmail,
     });
 
     if (!result.success) {
@@ -96,9 +93,9 @@ export default function QuestionDetail() {
     );
 
   return (
-    <div className="p-4 md:p-6 max-w-6xl mx-auto animate-fade-in">
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
-        <div className="space-y-6">
+    <div className="p-4 md:p-6 max-w-6xl mx-auto animate-fade-in h-full">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 h-full">
+        <div className="space-y-6 overflow-y-auto">
           {/* Main Question Card */}
           <Card>
             <CardContent className="p-4 md:p-6 flex gap-4">
@@ -203,7 +200,7 @@ export default function QuestionDetail() {
           </Card>
         </div>
 
-        <aside className="space-y-4">
+        <aside className="space-y-4 sticky top-0 h-full">
           <Card>
             <CardContent className="p-4 space-y-3">
               <h3 className="font-semibold text-sm">Similar Questions</h3>

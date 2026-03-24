@@ -2,20 +2,20 @@
 
 import { useState } from 'react';
 import { usePathname } from 'next/navigation'; // ADD THIS
+import { signOut, useSession } from 'next-auth/react';
 import { BottomNav } from './BottomNav';
 import { CollapsibleSidebar } from './CollapsibleSidebar';
 import { DesktopSidebar } from './DesktopSidebar';
 import { Menu } from 'lucide-react';
-import { useAuthStore } from '@/lib/store';
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const { data: session } = useSession();
 
-  // get the current role from the store
-  const { role /*, setRole*/ } = useAuthStore();
+  const role = session?.user?.role === 'LECTURER' ? 'lecturer' : 'student';
 
-  const publicRoutes = ['/', '/login', '/register'];
+  const publicRoutes = ['/', '/login', '/register', '/forgot-password'];
   const isPublicRoute = publicRoutes.includes(pathname);
 
   // Hide app navigation only on public auth/landing pages.
@@ -42,6 +42,17 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
               <span className="text-primary">Scholar</span>
               <span className="text-accent">Sync</span>
             </h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <p className="text-xs text-muted-foreground truncate max-w-[130px]">
+              {session?.user?.name}
+            </p>
+            <button
+              onClick={() => signOut({ callbackUrl: '/login' })}
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              Sign Out
+            </button>
           </div>
         </div>
 

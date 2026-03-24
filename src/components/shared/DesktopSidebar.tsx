@@ -10,9 +10,10 @@ import {
   /*BarChart3, */ HelpCircle,
   LogOut,
   BarChart3,
+  type LucideIcon,
 } from 'lucide-react';
 import { NavLink } from '../NavLink';
-import { useRouter } from 'next/navigation'; // Changed from react-router-dom
+import { signOut, useSession } from 'next-auth/react';
 
 // Using a simple type for now to avoid mock-data errors
 type UserRole = 'student' | 'lecturer';
@@ -21,28 +22,37 @@ interface DesktopSidebarProps {
   role: UserRole;
 }
 
-const studentNav = [
-  { to: '/dashboard', icon: Home, label: 'Dashboard', end: true },
-  { to: '/hub', icon: MessageSquare, label: 'Q&A Forum', end: true },
+type SidebarNavItem = {
+  to: string;
+  icon: LucideIcon;
+  label: string;
+  end?: boolean;
+};
+
+const studentNav: SidebarNavItem[] = [
+  { to: '/dashboard', icon: Home, label: 'Dashboard' },
+  { to: '/hub', icon: MessageSquare, label: 'Q&A Forum' },
   { to: '/qna', icon: HelpCircle, label: 'Q&A', end: true },
   { to: '/qna/my', icon: HelpCircle, label: 'My Questions', end: true },
-  { to: '/ask', icon: PlusCircle, label: 'Ask Question', end: true },
-  { to: '/forum', icon: BookOpen, label: 'Knowledge Forum', end: true },
-  { to: '/profile', icon: User, label: 'Profile', end: true },
+  { to: '/ask', icon: PlusCircle, label: 'Ask Question' },
+  { to: '/forum', icon: BookOpen, label: 'Knowledge Forum' },
+  { to: '/profile', icon: User, label: 'Profile' },
 ];
 
-const lecturerNav = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', end: true },
-  { to: '/modules', icon: BookOpen, label: 'Manage Modules', end: true },
-  { to: '/lecturer', icon: HelpCircle, label: 'Question Forum', end: true },
-  { to: '/forum', icon: MessageSquare, label: 'Forum', end: true },
-  { to: '/analytics', icon: BarChart3, label: 'Analytics', end: true },
-  { to: '/profile', icon: User, label: 'Profile', end: true },
+const lecturerNav: SidebarNavItem[] = [
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/qna', icon: HelpCircle, label: 'Q&A', end: true },
+  { to: '/qna/my', icon: HelpCircle, label: 'My Questions', end: true },
+  { to: '/modules', icon: BookOpen, label: 'Manage Modules' },
+  { to: '/lecturer', icon: HelpCircle, label: 'Question Forum' },
+  { to: '/forum', icon: MessageSquare, label: 'Forum' },
+  { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+  { to: '/profile', icon: User, label: 'Profile' },
 ];
 
 export function DesktopSidebar({ role }: DesktopSidebarProps) {
   const items = role === 'student' ? studentNav : lecturerNav;
-  const router = useRouter(); // Next.js router
+  const { data: session } = useSession();
 
   return (
     <aside className="hidden md:flex flex-col w-64 border-r bg-card min-h-screen sticky top-0">
@@ -52,6 +62,7 @@ export function DesktopSidebar({ role }: DesktopSidebarProps) {
           <span className="text-accent">Sync</span>
         </h1>
         <p className="text-xs text-muted-foreground mt-1 capitalize">{role} Portal</p>
+        <p className="text-xs text-muted-foreground mt-1 truncate">{session?.user?.name}</p>
       </div>
 
       <nav className="flex-1 p-4 space-y-1">
@@ -59,7 +70,7 @@ export function DesktopSidebar({ role }: DesktopSidebarProps) {
           <NavLink
             key={item.to}
             to={item.to}
-            end={item.end}
+            end={item.end || false}
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-muted transition-colors"
             activeClassName="bg-primary/10 text-primary font-medium"
           >
@@ -71,7 +82,7 @@ export function DesktopSidebar({ role }: DesktopSidebarProps) {
 
       <div className="p-4 border-t">
         <button
-          onClick={() => router.push('/')}
+          onClick={() => signOut({ callbackUrl: '/login' })}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-muted transition-colors w-full"
         >
           <LogOut className="h-4 w-4" />

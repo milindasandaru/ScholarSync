@@ -9,13 +9,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, Loader2, PlusCircle, Search } from 'lucide-react';
 import {
   deleteQuestion,
-  getQuestionsByAuthorEmail,
+  getMyQuestions,
   getModules,
   updateQuestion,
   type RankedQuestion,
   type QnaModule,
 } from '@/actions/qna.actions';
-import { useAuthStore } from '@/lib/store';
 import {
   Select,
   SelectTrigger,
@@ -42,7 +41,6 @@ type EditDraft = {
 
 export default function MyQuestionsPage() {
   const router = useRouter();
-  const currentUserEmail = useAuthStore((state) => state.currentUser.email);
   const [questions, setQuestions] = useState<RankedQuestion[]>([]);
   const [modules, setModules] = useState<QnaModule[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,10 +49,11 @@ export default function MyQuestionsPage() {
   const [search, setSearch] = useState('');
   const [editingQuestion, setEditingQuestion] = useState<EditDraft | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const normalizedSearch = search.trim().toLowerCase();
 
   useEffect(() => {
     async function fetchData() {
-      const fetchedQuestions = await getQuestionsByAuthorEmail(currentUserEmail);
+      const fetchedQuestions = await getMyQuestions();
       const fetchedModules = await getModules();
       setQuestions(fetchedQuestions);
       setModules(fetchedModules);
@@ -62,17 +61,24 @@ export default function MyQuestionsPage() {
     }
 
     fetchData();
-  }, [currentUserEmail]);
+  }, []);
 
   const filtered = questions
     .filter((q) => selectedModule === 'all' || q.moduleId === selectedModule)
-    .filter((q) => q.title.toLowerCase().includes(search.toLowerCase()));
+    .filter((q) => {
+      if (!normalizedSearch) return true;
+
+      const haystack = [q.title, q.content, q.tags.join(' '), q.module.code]
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(normalizedSearch);
+    });
 
   const handleDeleteQuestion = async (question: RankedQuestion) => {
     const shouldDelete = window.confirm('Delete this question permanently?');
     if (!shouldDelete) return;
 
-    const result = await deleteQuestion(question.id, currentUserEmail);
+    const result = await deleteQuestion(question.id);
     if (!result.success) {
       alert(result.message ?? 'Failed to delete question.');
       return;
@@ -113,7 +119,6 @@ export default function MyQuestionsPage() {
       content,
       tags,
       bounty: editingQuestion.bounty,
-      authorEmail: currentUserEmail,
     });
 
     if (!result.success) {
@@ -141,64 +146,68 @@ export default function MyQuestionsPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-4xl mx-auto animate-fade-in">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl md:text-2xl font-bold">My Questions</h2>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => router.push('/qna')}>
-            <ArrowLeft className="h-4 w-4 mr-1" /> All Questions
-          </Button>
-          <Button size="sm" onClick={() => router.push('/ask')}>
-            <PlusCircle className="h-4 w-4 mr-1" /> Ask Question
-          </Button>
-        </div>
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search my questions..."
-            className="pl-9"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <div className="w-full sm:w-48">
-          <Select value={selectedModule} onValueChange={setSelectedModule}>
-            <SelectTrigger>
-              <SelectValue placeholder="All Modules" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Modules</SelectItem>
-              {modules.map((m) => (
-                <SelectItem key={m.id} value={m.id}>
-                  {m.code} - {m.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        {isLoading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    <div className="p-4 md:p-6 animate-fade-in flex flex-col h-full min-h-0 gap-4">
+      <div className="max-w-4xl mx-auto w-full flex-shrink-0 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl md:text-2xl font-bold">My Questions</h2>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => router.push('/qna')}>
+              <ArrowLeft className="h-4 w-4 mr-1" /> All Questions
+            </Button>
+            <Button size="sm" onClick={() => router.push('/ask')}>
+              <PlusCircle className="h-4 w-4 mr-1" /> Ask Question
+            </Button>
           </div>
-        ) : filtered.length > 0 ? (
-          filtered.map((q) => (
-            <QuestionCard
-              key={q.id}
-              question={q}
-              showActions
-              onEdit={handleEditQuestion}
-              onDelete={handleDeleteQuestion}
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3 w-full">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search my questions..."
+              className="pl-9"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
             />
-          ))
-        ) : (
-          <p className="text-center text-muted-foreground py-12">No questions found.</p>
-        )}
+          </div>
+          <div className="w-full sm:w-52">
+            <Select value={selectedModule} onValueChange={setSelectedModule}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Modules" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Modules</SelectItem>
+                {modules.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>
+                    {m.code} - {m.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-4xl mx-auto w-full flex-1 min-h-0 overflow-y-auto pr-1">
+        <div className="space-y-3 pb-4">
+          {isLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : filtered.length > 0 ? (
+            filtered.map((q) => (
+              <QuestionCard
+                key={q.id}
+                question={q}
+                showActions
+                onEdit={handleEditQuestion}
+                onDelete={handleDeleteQuestion}
+              />
+            ))
+          ) : (
+            <p className="text-center text-muted-foreground py-12">No questions found.</p>
+          )}
+        </div>
       </div>
 
       <Dialog
