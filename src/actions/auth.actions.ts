@@ -85,6 +85,7 @@ export async function requestPasswordResetOtp(input: ForgotPasswordInput) {
     return {
       success: true,
       message: 'If this email exists, a reset OTP has been sent.',
+      ...(process.env.NODE_ENV === 'development' && { otp }),
     };
   } catch (error) {
     console.error('requestPasswordResetOtp failed:', error);
