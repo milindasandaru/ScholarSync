@@ -59,15 +59,6 @@ const STOP_WORDS = new Set([
   'from',
 ]);
 
-const SYNONYMS: Record<string, string[]> = {
-  login: ['signin', 'sign', 'log'],
-  error: ['issue', 'problem', 'bug'],
-  deploy: ['deployment', 'release'],
-  deployment: ['deploy', 'release'],
-  deadline: ['due', 'submission'],
-  submission: ['submit', 'deadline'],
-};
-
 function tokenize(text: string) {
   return text
     .toLowerCase()
@@ -78,9 +69,7 @@ function tokenize(text: string) {
 }
 
 function buildKeywordSet(text: string) {
-  const terms = tokenize(text);
-  const expanded = terms.flatMap((word) => [word, ...(SYNONYMS[word] || [])]);
-  return new Set(expanded);
+  return new Set(tokenize(text));
 }
 
 function normalizeForExactMatch(text: string) {
@@ -92,10 +81,14 @@ function normalizeForExactMatch(text: string) {
 }
 
 export async function checkSimilarQuestions(title: string, moduleCode?: string) {
-  if (!title || title.trim().length < 10) return [];
+  if (!title || title.trim().length < 3) return [];
 
   const normalizedInput = normalizeForExactMatch(title);
   const inputTerms = buildKeywordSet(title);
+
+  if (inputTerms.size === 0 && normalizedInput.length < 3) {
+    return [];
+  }
 
   const moduleFilter = moduleCode
     ? await prisma.module.findUnique({ where: { code: moduleCode }, select: { id: true } })
@@ -115,32 +108,32 @@ export async function checkSimilarQuestions(title: string, moduleCode?: string) 
     },
   });
 
-  // 2. Score each question for exact and high-overlap relevance.
+  // 2. Score each question with strict keyword relevance.
   const scored = candidates.map((q) => {
     const candidateTerms = buildKeywordSet(q.title);
-    const intersection = [...inputTerms].filter((term) => candidateTerms.has(term)).length;
+    const keywordHits = [...inputTerms].filter((term) => candidateTerms.has(term)).length;
     const union = new Set([...inputTerms, ...candidateTerms]).size;
-    const overlap = union > 0 ? intersection / union : 0;
+    const overlap = union > 0 ? keywordHits / union : 0;
 
     const normalizedCandidate = normalizeForExactMatch(q.title);
     const isExactMatch = normalizedInput === normalizedCandidate;
 
-    const score = overlap * 100 + q.upvotes * 0.05 + (isExactMatch ? 100 : 0);
+    const score = (isExactMatch ? 1000 : 0) + keywordHits * 30 + overlap * 120 + q.upvotes * 0.1;
 
     return {
       ...q,
       score,
       overlap,
-      intersection,
+      keywordHits,
       isExactMatch,
     };
   });
 
-  // 3. Keep only genuine similarity to avoid noisy duplicate warnings.
+  // 3. Keep only exact or actual keyword matches.
   return scored
-    .filter((q) => q.isExactMatch || q.intersection >= 2 || q.overlap >= 0.45)
+    .filter((q) => q.isExactMatch || q.keywordHits > 0)
     .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
+    .slice(0, 4);
 }
 
 // ==========================================
