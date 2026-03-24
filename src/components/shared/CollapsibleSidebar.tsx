@@ -8,11 +8,13 @@ import {
   LayoutDashboard,
   BookOpen,
   /* BarChart3, */ HelpCircle,
-  /* LogOut, */ X,
+  LogOut,
+  X,
   BarChart3,
+  type LucideIcon,
 } from 'lucide-react';
 import { NavLink } from '../NavLink';
-//import { useRouter } from "next/navigation";
+import { signOut } from 'next-auth/react';
 
 type UserRole = 'student' | 'lecturer';
 
@@ -22,28 +24,34 @@ interface CollapsibleSidebarProps {
   onClose: () => void;
 }
 
-const studentNav = [
-  { to: '/dashboard', icon: Home, label: 'Dashboard', end: true },
-  { to: '/hub', icon: MessageSquare, label: 'Q&A Forum', end: true },
+type SidebarNavItem = {
+  to: string;
+  icon: LucideIcon;
+  label: string;
+  end?: boolean;
+};
+
+const studentNav: SidebarNavItem[] = [
+  { to: '/dashboard', icon: Home, label: 'Dashboard' },
+  { to: '/hub', icon: MessageSquare, label: 'Q&A Forum' },
   { to: '/qna', icon: HelpCircle, label: 'Q&A', end: true },
   { to: '/qna/my', icon: HelpCircle, label: 'My Questions', end: true },
-  { to: '/ask', icon: PlusCircle, label: 'Ask Question', end: true },
-  { to: '/forum', icon: BookOpen, label: 'Knowledge Forum', end: true },
-  { to: '/profile', icon: User, label: 'Profile', end: true },
+  { to: '/ask', icon: PlusCircle, label: 'Ask Question' },
+  { to: '/forum', icon: BookOpen, label: 'Knowledge Forum' },
+  { to: '/profile', icon: User, label: 'Profile' },
 ];
 
-const lecturerNav = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', end: true },
-  { to: '/modules', icon: BookOpen, label: 'Manage Modules', end: true },
-  { to: '/lecturer', icon: HelpCircle, label: 'Question Forum', end: true },
-  { to: '/forum', icon: MessageSquare, label: 'Forum', end: true },
-  { to: '/analytics', icon: BarChart3, label: 'Analytics', end: true },
-  { to: '/profile', icon: User, label: 'Profile', end: true },
+const lecturerNav: SidebarNavItem[] = [
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/modules', icon: BookOpen, label: 'Manage Modules' },
+  { to: '/lecturer', icon: HelpCircle, label: 'Question Forum' },
+  { to: '/forum', icon: MessageSquare, label: 'Forum' },
+  { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+  { to: '/profile', icon: User, label: 'Profile' },
 ];
 
 export function CollapsibleSidebar({ role, open, onClose }: CollapsibleSidebarProps) {
   const items = role === 'student' ? studentNav : lecturerNav;
-  //const router = useRouter();
 
   return (
     <>
@@ -75,7 +83,7 @@ export function CollapsibleSidebar({ role, open, onClose }: CollapsibleSidebarPr
             <NavLink
               key={item.to}
               to={item.to}
-              end={item.end}
+              end={item.end || false}
               className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-muted transition-colors"
               activeClassName="bg-primary/10 text-primary font-medium"
               onClick={onClose}
@@ -85,6 +93,19 @@ export function CollapsibleSidebar({ role, open, onClose }: CollapsibleSidebarPr
             </NavLink>
           ))}
         </nav>
+
+        <div className="p-4 border-t">
+          <button
+            onClick={() => {
+              onClose();
+              signOut({ callbackUrl: '/login' });
+            }}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-muted transition-colors w-full"
+          >
+            <LogOut className="h-4 w-4" />
+            <span>Sign Out</span>
+          </button>
+        </div>
       </aside>
     </>
   );
