@@ -6,9 +6,10 @@ import type { Role } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
 
-if (!process.env.NEXTAUTH_URL?.trim()) {
-  process.env.NEXTAUTH_URL = 'http://localhost:3000';
-}
+const isProduction = process.env.NODE_ENV === 'production';
+const sessionTokenName = isProduction
+  ? '__Secure-next-auth.session-token'
+  : 'next-auth.session-token';
 
 const googleProvider =
   process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
@@ -36,7 +37,17 @@ const providers: NextAuthOptions['providers'] = [
         return null;
       }
 
-      const user = await prisma.user.findUnique({ where: { email } });
+      const user = await prisma.user.findUnique({
+        where: { email },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          password: true,
+        },
+      });
+
       if (!user?.password) {
         return null;
       }
@@ -58,29 +69,57 @@ const providers: NextAuthOptions['providers'] = [
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
+  useSecureCookies: isProduction,
   session: {
     strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60,
+  },
+  jwt: {
+    maxAge: 30 * 24 * 60 * 60,
   },
   pages: {
     signIn: '/login',
   },
+  cookies: {
+    sessionToken: {
+      name: sessionTokenName,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: isProduction,
+      },
+    },
+  },
   providers,
   callbacks: {
     async jwt({ token, user }) {
+      // On initial login, persist user identity in JWT.
       if (user) {
         token.id = user.id as string;
         token.role = (user as { role?: Role }).role;
       }
 
-      if (token.email) {
-        const dbUser = await prisma.user.findUnique({
-          where: { email: token.email },
-          select: { id: true, role: true },
-        });
+      // In serverless environments, avoid DB calls on every request.
+      // Only hydrate missing fields.
+      if ((!token.id || !token.role) && (token.sub || token.email)) {
+        try {
+          const dbUser = token.sub
+            ? await prisma.user.findUnique({
+                where: { id: token.sub },
+                select: { id: true, role: true },
+              })
+            : await prisma.user.findUnique({
+                where: { email: token.email as string },
+                select: { id: true, role: true },
+              });
 
-        if (dbUser) {
-          token.id = dbUser.id;
-          token.role = dbUser.role;
+          if (dbUser) {
+            token.id = dbUser.id;
+            token.role = dbUser.role;
+          }
+        } catch (error) {
+          console.error('JWT hydration lookup failed:', error);
         }
       }
 
