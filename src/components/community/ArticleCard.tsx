@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Heart, MessageCircle } from 'lucide-react';
 import { formatDate, truncateContent } from '@/lib/community/helpers';
-import { useCommunityStore } from '@/lib/store/communityStore';
+import { useCommunityStore } from '@/lib/community/communityStore';
 import { communityApi } from '@/lib/community/api';
 
 interface ArticleCardProps {

@@ -21,6 +21,8 @@ interface CommentSectionProps {
 export function CommentSection({ postId, comments, currentUserId, onCommentAdded }: CommentSectionProps) {
   const [input, setInput] = React.useState('');
   const [loading, setLoading] = React.useState(false);
+  const MAX_COMMENT_LENGTH = 300;
+  const isCommentTooLong = input.length > MAX_COMMENT_LENGTH;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,13 +44,35 @@ export function CommentSection({ postId, comments, currentUserId, onCommentAdded
       <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Comments ({comments.length})</h3>
       {currentUserId && (
         <form onSubmit={handleSubmit} className="mb-6">
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Add a comment..."
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-            rows={3}
-          />
+          <div className="relative">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Add a comment..."
+              className={`w-full px-4 py-3 rounded-lg border dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 resize-none ${
+                isCommentTooLong
+                  ? 'border-yellow-300 focus:ring-yellow-500'
+                  : 'border-gray-300 focus:ring-blue-500'
+              }`}
+              rows={3}
+            />
+            <div className="flex items-center justify-between mt-2">
+              <div>
+                {isCommentTooLong && (
+                  <p className="text-sm text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
+                    💡 Consider keeping comments shorter for better readability
+                  </p>
+                )}
+              </div>
+              <span className={`text-xs ${
+                isCommentTooLong
+                  ? 'text-yellow-600 dark:text-yellow-400 font-medium'
+                  : 'text-gray-500 dark:text-gray-400'
+              }`}>
+                {input.length}/{MAX_COMMENT_LENGTH}
+              </span>
+            </div>
+          </div>
           <button
             type="submit"
             disabled={loading || !input.trim()}

@@ -7,14 +7,33 @@ import Link from 'next/link';
 import { communityApi } from '@/lib/community/api';
 import { formatDate } from '@/lib/community/helpers';
 import { CommentSection } from '@/components/community/CommentSection';
-import { useCommunityStore } from '@/lib/store/communityStore';
+import { useCommunityStore } from '@/lib/community/communityStore';
 
 const CURRENT_USER_ID = 'user-123';
+
+interface Post {
+  id: string;
+  title: string;
+  content: string;
+  imageUrl?: string;
+  author: { id: string; name: string; email: string };
+  createdAt: string;
+  likeCount: number;
+  commentCount: number;
+  comments?: Comment[];
+}
+
+interface Comment {
+  id: string;
+  content: string;
+  author: { id: string; name: string };
+  createdAt: Date;
+}
 
 export default function ArticleDetailPage() {
   const params = useParams();
   const postId = params.postId as string;
-  const [post, setPost] = React.useState<any>(null);
+  const [post, setPost] = React.useState<Post | null>(null);
   const [loading, setLoading] = React.useState(true);
   const { userLikedPosts, addUserLike, removeUserLike } = useCommunityStore();
   const [likeCount, setLikeCount] = React.useState(0);
@@ -128,11 +147,13 @@ export default function ArticleDetailPage() {
             comments={post.comments || []}
             currentUserId={CURRENT_USER_ID}
             onCommentAdded={(comment) => {
-              setPost((prev: any) => ({
-                ...prev,
-                comments: [comment, ...(prev.comments || [])],
-                commentCount: (prev.commentCount || 0) + 1,
-              }));
+              setPost((prev: Post | null) => (
+                prev ? {
+                  ...prev,
+                  comments: [comment, ...(prev.comments || [])],
+                  commentCount: (prev.commentCount || 0) + 1,
+                } : null
+              ));
             }}
           />
         </article>

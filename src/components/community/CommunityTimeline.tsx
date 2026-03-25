@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { ArticleCard } from './ArticleCard';
-import { useCommunityStore } from '@/lib/store/communityStore';
+import { useCommunityStore } from '@/lib/community/communityStore';
 import { communityApi } from '@/lib/community/api';
 
 interface CommunityTimelineProps {

@@ -11,7 +11,11 @@ export async function GET(request: NextRequest) {
     const limit = 10;
     const skip = (page - 1) * limit;
 
-    let whereClause: any = {};
+    interface WhereClause {
+      category?: string;
+      OR?: Array<{ title?: { contains: string; mode: string } } | { content?: { contains: string; mode: string } }>;
+    }
+    const whereClause: WhereClause = {};
     if (category && category !== 'all') whereClause.category = category;
     if (search) {
       whereClause.OR = [
@@ -20,7 +24,12 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    let orderBy: any = { createdAt: 'desc' };
+    interface OrderBy {
+      createdAt?: string;
+      likeCount?: string;
+      commentCount?: string;
+    }
+    let orderBy: OrderBy = { createdAt: 'desc' };
     if (sort === 'trending') orderBy = [{ likeCount: 'desc' }, { commentCount: 'desc' }];
     else if (sort === 'most-commented') orderBy = { commentCount: 'desc' };
     else if (sort === 'most-liked') orderBy = { likeCount: 'desc' };

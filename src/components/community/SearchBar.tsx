@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Search } from 'lucide-react';
-import { useCommunityStore } from '@/lib/store/communityStore';
+import { useCommunityStore } from '@/lib/community/communityStore';
 
 export function SearchBar() {
   const { setSearch, searchQuery } = useCommunityStore();

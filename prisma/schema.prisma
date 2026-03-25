@@ -114,8 +114,9 @@ model Comment {
 
   @@index([authorId])
   @@index([postId])
+}
 
-  model Like {
+model Like {
   id        String   @id @default(cuid())
   
   userId    String
@@ -127,5 +128,4 @@ model Comment {
   @@unique([userId, postId])
   @@index([userId])
   @@index([postId])
-}
 }

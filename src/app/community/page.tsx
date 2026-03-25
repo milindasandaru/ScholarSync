@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { CommunityTimeline } from '@/components/community/CommunityTimeline';
 import { SearchBar } from '@/components/community/SearchBar';
-import { FilterBar } from '@/components/community/FilterBar';
+import { FilterBar } from '@/components/community/Filterbar';
 
 const CURRENT_USER_ID = 'user-123';
 

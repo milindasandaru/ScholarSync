@@ -10,7 +10,6 @@ import {
   HelpCircle,
   LogOut,
   BarChart3,
-  Users,
 } from 'lucide-react';
 import { NavLink } from '../NavLink';
 import { useRouter } from 'next/navigation'; // Changed from react-router-dom
@@ -28,20 +27,19 @@ const studentNav = [
   { to: '/qna', icon: HelpCircle, label: 'Q&A' },
   { to: '/qna/my', icon: HelpCircle, label: 'My Questions' },
   { to: '/ask', icon: PlusCircle, label: 'Ask Question' },
-  { to: '/forum', icon: BookOpen, label: 'Knowledge Forum' },
+  { to: '/community', icon: BookOpen, label: 'Knowledge Forum' },
   { to: '/profile', icon: User, label: 'Profile' },
-  { to: '/community', icon: Users, label: 'Community' },
 ];
 
 const lecturerNav = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/modules', icon: BookOpen, label: 'Manage Modules' },
   { to: '/lecturer', icon: HelpCircle, label: 'Question Forum' },
-  { to: '/forum', icon: MessageSquare, label: 'Forum' },
+  { to: '/community', icon: MessageSquare, label: 'Knowledge Forum' },
   { to: '/analytics', icon: BarChart3, label: 'Analytics' },
   { to: '/profile', icon: User, label: 'Profile' },
-  { to: '/community', icon: Users, label: 'Community' },
 ];
+
 
 export function DesktopSidebar({ role }: DesktopSidebarProps) {
   const items = role === 'student' ? studentNav : lecturerNav;
