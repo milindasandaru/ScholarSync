@@ -192,6 +192,7 @@ export default function Landing() {
         </div>
       </section>
 
+      // Stats Bar Section - Demo change for commit 6
       {/* ── Stats Bar ────────────────────────────────── */}
       <section className="relative -mt-10 z-10 px-4 md:px-6">
         <div className="container mx-auto">
