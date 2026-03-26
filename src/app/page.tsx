@@ -101,7 +101,7 @@ export default function Landing() {
               </Button>
             </Link>
             <Link href="/register">
-              <Button size="sm" className="gap-1">
+              <Button size="sm" className="gap-1 shadow-md">
                 Get Started <ChevronRight className="h-3.5 w-3.5" />
               </Button>
             </Link>
