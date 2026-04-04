@@ -1,0 +1,63 @@
+@plugin "tailwindcss-animate";
+@config "../../tailwind.config.ts";
+
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+@layer base {
+  :root {
+    --background: 222 47% 8%;
+    --foreground: 210 40% 98%;
+    --card: 222 40% 14%;
+    --card-foreground: 210 40% 96%;
+    --popover: 222 40% 14%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 28 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 230 75% 58%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 222 32% 20%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 230 75% 58%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 222 29% 24%;
+    --input: 222 29% 24%;
+    --ring: 230 75% 58%;
+    --radius: 0.85rem;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    @apply bg-slate-950 text-slate-100 antialiased;
+  }
+}
+
+@layer utilities {
+  .bg-app {
+    background: radial-gradient(circle at 20% 10%, rgba(70, 85, 255, 0.18) 0, rgba(2, 6, 23, 0) 35%),
+      radial-gradient(circle at 80% 80%, rgba(255, 123, 0, 0.1) 0, rgba(2, 6, 23, 0) 35%),
+      #020617;
+  }
+
+  .card-shell {
+    @apply bg-slate-900/90 border border-slate-800 rounded-2xl;
+  }
+
+  .field-shell {
+    @apply bg-slate-950 border border-slate-800 text-slate-200;
+  }
+
+  .brand-gradient {
+    background: linear-gradient(90deg, #3b82f6 0%, #2563eb 30%, #ff7b00 65%, #fb923c 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}

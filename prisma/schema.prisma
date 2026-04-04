@@ -1,0 +1,84 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String     @id @default(cuid())
+  name             String
+  email            String     @unique
+  password         String
+  role             Role       @default(STUDENT)
+  reputationPoints Int        @default(0)
+  questions        Question[]
+  answers          Answer[]
+  badges           Badge[]
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+}
+
+model Module {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+}
+
+enum Role {
+  STUDENT
+  LECTURER
+}
+
+model Question {
+  id                String   @id @default(cuid())
+  title             String
+  content           String
+  authorId          String
+  tags              String[]
+  upvotes           Int      @default(0)
+  isLecturerAnswered Boolean @default(false)
+  createdAt         DateTime @default(now())
+
+  author            User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  answers           Answer[]
+
+  @@index([authorId])
+}
+
+model Answer {
+  id         String   @id @default(cuid())
+  content    String
+  questionId String
+  authorId   String
+  isAccepted Boolean  @default(false)
+  upvotes    Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  author     User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([questionId])
+  @@index([authorId])
+}
+
+model Badge {
+  id             String @id @default(cuid())
+  name           String
+  description    String
+  iconName       String
+  requiredPoints Int
+  userId         String
+
+  user           User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
