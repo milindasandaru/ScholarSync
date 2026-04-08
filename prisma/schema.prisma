@@ -33,6 +33,7 @@ model User {
   updatedAt DateTime          @updatedAt
   likes     Like[]            @relation("UserLikes")
   notifications Notification[] @relation("UserNotifications")
+  flags     Flag[]            @relation("UserFlags")
 }
 
 model Account {
@@ -143,6 +144,7 @@ model Post {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   notifications Notification[] @relation("PostNotifications")
+  flags        Flag[]    @relation("PostFlags")
 
   @@index([authorId])
   @@index([createdAt])
@@ -159,6 +161,7 @@ model Comment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   notifications Notification[] @relation("CommentNotifications")
+  flags     Flag[]    @relation("CommentFlags")
 
   @@index([authorId])
   @@index([postId])
@@ -210,4 +213,24 @@ enum NotificationType {
   POST_LIKED
   POST_COMMENTED
   COMMENT_LIKED  // Future use
+}
+
+model Flag {
+  id        String   @id @default(cuid())
+  reason    String
+
+  reporterId String
+  reporter   User    @relation("UserFlags", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  postId    String?
+  post      Post?    @relation("PostFlags", fields: [postId], references: [id], onDelete: Cascade)
+
+  commentId String?
+  comment   Comment? @relation("CommentFlags", fields: [commentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([reporterId])
+  @@index([postId])
+  @@index([commentId])
 }

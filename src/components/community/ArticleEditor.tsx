@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Upload, X, FileText, AlertCircle } from 'lucide-react';
 import { communityApi } from '@/lib/community/api';
 import { CATEGORIES } from '@/lib/community/helpers';
+import { RichTextEditor } from './RichTextEditor';
 
 interface ArticleEditorProps {
   currentUserId?: string;
@@ -80,7 +81,7 @@ export function ArticleEditor({ currentUserId }: ArticleEditorProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !content.trim() || !currentUserId) return;
+    if (!title.trim() || !content.replace(/<[^>]*>/g, '').trim() || !currentUserId) return;
     setLoading(true);
     try {
       const attachmentsData = pdfFiles.map((pdf) => ({
@@ -238,12 +239,10 @@ export function ArticleEditor({ currentUserId }: ArticleEditorProps) {
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Content
           </label>
-          <textarea
+          <RichTextEditor
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={(html) => setContent(html)}
             placeholder="Write your article..."
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical min-h-96"
-            required
           />
         </div>
         <div className="flex gap-4 justify-end">

@@ -91,4 +91,38 @@ export const communityApi = {
     if (!res.ok) throw new Error('Failed to mark notifications as read');
     return res.json();
   },
+
+  async updateComment(commentId: string, content: string) {
+    const res = await fetch(`/api/comments/${commentId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ content }),
+    });
+    if (!res.ok) throw new Error('Failed to update comment');
+    return res.json();
+  },
+
+  async deleteComment(commentId: string) {
+    const res = await fetch(`/api/comments/${commentId}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    if (!res.ok) throw new Error('Failed to delete comment');
+    return res.json();
+  },
+
+  async flagContent(reason: string, postId?: string, commentId?: string) {
+    const res = await fetch('/api/flags', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ reason, postId, commentId }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Failed to flag content');
+    }
+    return res.json();
+  },
 };
