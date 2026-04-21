@@ -70,6 +70,10 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 Prisma schema is in `prisma/schema.prisma`. To apply migrations or seed data, use the provided npm scripts.
 
+## Community Articles
+
+Community article authors can upload PDF attachments, and those files are shown as downloadable links in the community feed and the article detail page.
+
 ## License
 
 See [LICENSE](LICENSE).

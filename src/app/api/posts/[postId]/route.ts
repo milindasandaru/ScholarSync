@@ -8,6 +8,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       where: { id: postId },
       include: {
         author: { select: { id: true, name: true, email: true } },
+        attachments: true,
         comments: {
           include: { author: { select: { id: true, name: true, email: true } } },
           orderBy: { createdAt: 'desc' },

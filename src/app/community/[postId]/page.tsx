@@ -15,6 +15,15 @@ interface Attachment {
   data: string;
 }
 
+const parsePdfAttachments = (attachmentsJson?: string) => {
+  try {
+    const attachments = attachmentsJson ? (JSON.parse(attachmentsJson) as Attachment[]) : [];
+    return attachments.filter((attachment) => attachment.name.toLowerCase().endsWith('.pdf'));
+  } catch {
+    return [] as Attachment[];
+  }
+};
+
 interface Post {
   id: string;
   title: string;
@@ -175,44 +184,35 @@ export default function ArticleDetailPage() {
             />
           </div>
 
-          {(() => {
-            let attachments: Attachment[] = [];
-            try {
-              attachments = post.attachments ? JSON.parse(post.attachments) : [];
-            } catch {
-              /* ignore parse errors */
-            }
-            if (attachments.length === 0) return null;
-            return (
-              <div className="mb-8 p-4 bg-gray-50 dark:bg-slate-700/50 rounded-lg border border-gray-200 dark:border-slate-600">
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                  <FileText size={16} />
-                  Attachments
-                </h3>
-                <div className="space-y-2">
-                  {attachments.map((file, index) => (
-                    <a
-                      key={index}
-                      href={file.data}
-                      download={file.name}
-                      className="flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-600 hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors group"
-                    >
-                      <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                        <FileText size={20} className="text-red-600 dark:text-red-400" />
-                      </div>
-                      <span className="flex-1 text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
-                        {file.name}
-                      </span>
-                      <Download
-                        size={18}
-                        className="text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
-                      />
-                    </a>
-                  ))}
-                </div>
+          {parsePdfAttachments(post.attachments).length > 0 && (
+            <div className="mb-8 p-4 bg-gray-50 dark:bg-slate-700/50 rounded-lg border border-gray-200 dark:border-slate-600">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                <FileText size={16} />
+                PDF attachments
+              </h3>
+              <div className="space-y-2">
+                {parsePdfAttachments(post.attachments).map((file, index) => (
+                  <a
+                    key={`${file.name}-${index}`}
+                    href={file.data}
+                    download={file.name}
+                    className="flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-600 hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors group"
+                  >
+                    <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                      <FileText size={20} className="text-red-600 dark:text-red-400" />
+                    </div>
+                    <span className="flex-1 text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                      {file.name}
+                    </span>
+                    <Download
+                      size={18}
+                      className="text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
+                    />
+                  </a>
+                ))}
               </div>
-            );
-          })()}
+            </div>
+          )}
 
           {flagMessage && (
             <div

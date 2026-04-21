@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
       take: limit,
       include: {
         author: { select: { id: true, name: true, email: true } },
+        attachments: true,
         _count: { select: { comments: true, likes: true } },
       },
     });

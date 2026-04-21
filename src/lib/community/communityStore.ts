@@ -6,6 +6,7 @@ export type Post = {
   content: string;
   category: string;
   imageUrl?: string;
+  attachments?: string;
   likeCount: number;
   commentCount: number;
   createdAt: Date;

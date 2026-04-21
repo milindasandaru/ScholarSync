@@ -3,10 +3,15 @@
 import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Heart, MessageCircle } from 'lucide-react';
+import { Heart, MessageCircle, Download, FileText } from 'lucide-react';
 import { formatDate, truncateContent } from '@/lib/community/helpers';
 import { useCommunityStore } from '@/lib/community/communityStore';
 import { communityApi } from '@/lib/community/api';
+
+interface Attachment {
+  name: string;
+  data: string;
+}
 
 interface ArticleCardProps {
   post: {
@@ -14,6 +19,7 @@ interface ArticleCardProps {
     title: string;
     content: string;
     imageUrl?: string;
+    attachments?: string;
     likeCount: number;
     commentCount: number;
     createdAt: Date;
@@ -27,6 +33,16 @@ export function ArticleCard({ post, currentUserId }: ArticleCardProps) {
   const { userLikedPosts, addUserLike, removeUserLike } = useCommunityStore();
   const isLiked = userLikedPosts.has(post.id);
   const [likeCount, setLikeCount] = React.useState(post.likeCount);
+
+  let attachments: Attachment[] = [];
+  try {
+    attachments = post.attachments ? JSON.parse(post.attachments) : [];
+  } catch {
+    attachments = [];
+  }
+  const pdfAttachments = attachments.filter((attachment) =>
+    attachment.name.toLowerCase().endsWith('.pdf')
+  );
 
   const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -68,6 +84,28 @@ export function ArticleCard({ post, currentUserId }: ArticleCardProps) {
         <p className="text-gray-700 dark:text-gray-300 text-sm mb-4">
           {truncateContent(post.content, 150)}
         </p>
+        {pdfAttachments.length > 0 && (
+          <div className="mb-4 rounded-lg border border-blue-100 dark:border-blue-900/40 bg-blue-50 dark:bg-blue-900/10 p-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-blue-700 dark:text-blue-300 mb-2">
+              <FileText size={16} />
+              PDF attachments available
+            </div>
+            <div className="space-y-2">
+              {pdfAttachments.map((attachment, index) => (
+                <a
+                  key={`${attachment.name}-${index}`}
+                  href={attachment.data}
+                  download={attachment.name}
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center justify-between gap-3 rounded-md border border-blue-200/70 dark:border-blue-800/60 bg-white/80 dark:bg-slate-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors"
+                >
+                  <span className="truncate">{attachment.name}</span>
+                  <Download size={16} className="shrink-0 text-blue-600 dark:text-blue-400" />
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-slate-700">
           <button
             onClick={handleLike}
