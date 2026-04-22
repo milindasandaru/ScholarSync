@@ -80,7 +80,7 @@ export function DesktopSidebar({ role }: DesktopSidebarProps) {
 
       <div className="p-4 border-t">
         <button
-          onClick={() => signOut({ callbackUrl: '/login' })}
+          onClick={() => signOut({ callbackUrl: '/' })}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-muted transition-colors w-full"
         >
           <LogOut className="h-4 w-4" />

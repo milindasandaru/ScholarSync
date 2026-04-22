@@ -140,3 +140,139 @@ Notes:
 
 - Yes, if `NEXTAUTH_URL` is wrong or missing in production, login callbacks can fail.
 - Set the same variables in your CI/CD provider secrets (GitHub Actions) so build/deploy pipelines are consistent.
+
+## Task 01: NextAuth (Google + Credentials)
+
+This project uses App Router auth route handlers in:
+
+- `src/app/api/auth/[...nextauth]/route.ts`
+
+Core auth configuration is in:
+
+- `src/lib/auth.ts`
+
+Prisma auth models are in:
+
+- `prisma/schema.prisma` (`User`, `Account`, `Session`, `VerificationToken`)
+
+Client-side login example is in:
+
+- `src/app/login/page.tsx`
+
+Protected server-side route example is in:
+
+- `src/app/protected-example/page.tsx`
+
+### Session Strategy Choice
+
+This project uses `session.strategy = "jwt"` with a Prisma Adapter.
+
+- Why: it reduces DB reads for every session check and works well with serverless/edge-like environments.
+- Prisma Adapter is still required for OAuth account linking (`Account`) and optional DB-backed session/account data.
+
+### Required Environment Variables
+
+Set these in local `.env` and in Vercel Project Settings:
+
+- `NEXTAUTH_URL`
+- `NEXTAUTH_SECRET`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `DATABASE_URL`
+
+Example local values:
+
+```bash
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/scholarsync?schema=public"
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="replace_with_a_strong_random_secret"
+GOOGLE_CLIENT_ID="your_google_client_id"
+GOOGLE_CLIENT_SECRET="your_google_client_secret"
+```
+
+Example production values (Vercel):
+
+```bash
+NEXTAUTH_URL="https://your-app-name.vercel.app"
+NEXTAUTH_SECRET="replace_with_a_strong_random_secret"
+DATABASE_URL="postgresql://..."
+GOOGLE_CLIENT_ID="your_google_client_id"
+GOOGLE_CLIENT_SECRET="your_google_client_secret"
+```
+
+Generate a secure secret:
+
+```bash
+openssl rand -base64 32
+```
+
+### Google OAuth Setup Steps
+
+1. Go to Google Cloud Console.
+2. Create/select a project.
+3. Configure OAuth consent screen (External/Internal, app info, scopes).
+4. Create OAuth Client ID (Web application).
+5. Add Authorized JavaScript origins:
+   - `http://localhost:3000`
+   - `https://your-app-name.vercel.app`
+6. Add Authorized redirect URIs:
+   - `http://localhost:3000/api/auth/callback/google`
+   - `https://your-app-name.vercel.app/api/auth/callback/google`
+7. Copy Client ID and Client Secret into `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
+
+### Quick Verification
+
+```bash
+npm install
+npx prisma db push
+npm run seed
+npm run dev
+```
+
+Then test:
+
+- Credentials login with a seeded user.
+- Google login from `/login`.
+- Protected example route at `/protected-example`.
+
+## Task 02: Dockerization
+
+Docker artifacts included:
+
+- `Dockerfile`
+- `docker-compose.yml`
+- `.dockerignore`
+- `docker/entrypoint.sh`
+
+### Run with Docker Compose (App + Postgres)
+
+```bash
+docker compose up --build
+```
+
+App URL:
+
+- `http://localhost:3000`
+
+What happens on startup:
+
+- PostgreSQL starts on `db:5432`
+- App container runs `prisma db push` automatically (`RUN_MIGRATIONS=true`)
+- Next.js standalone server starts
+
+Optional seed inside Docker:
+
+1. Set in `docker-compose.yml`:
+   - `RUN_SEED: 'true'`
+2. Recreate containers:
+
+```bash
+docker compose down
+docker compose up --build
+```
+
+### Docker Notes for Production
+
+- Do not use `change_me_before_production` in production.
+- Set production secrets via your platform secret manager.
+- Set `NEXTAUTH_URL` to your real HTTPS production domain.
