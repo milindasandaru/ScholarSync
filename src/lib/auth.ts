@@ -30,39 +30,44 @@ const providers: NextAuthOptions['providers'] = [
       password: { label: 'Password', type: 'password' },
     },
     async authorize(credentials) {
-      const email = credentials?.email?.toLowerCase().trim();
-      const password = credentials?.password;
+      try {
+        const email = credentials?.email?.toLowerCase().trim();
+        const password = credentials?.password;
 
-      if (!email || !password) {
+        if (!email || !password) {
+          return null;
+        }
+
+        const user = await prisma.user.findUnique({
+          where: { email },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            password: true,
+          },
+        });
+
+        if (!user?.password) {
+          return null;
+        }
+
+        const isValid = await bcrypt.compare(password, user.password);
+        if (!isValid) {
+          return null;
+        }
+
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        };
+      } catch (error) {
+        console.error('Credentials authorize failed:', error);
         return null;
       }
-
-      const user = await prisma.user.findUnique({
-        where: { email },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
-          password: true,
-        },
-      });
-
-      if (!user?.password) {
-        return null;
-      }
-
-      const isValid = await bcrypt.compare(password, user.password);
-      if (!isValid) {
-        return null;
-      }
-
-      return {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      };
     },
   }),
 ];
@@ -127,10 +132,24 @@ export const authOptions: NextAuthOptions = {
 
       return token;
     },
-    async session({ session, token }) {
+    async session({ session, token, user }) {
       if (session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as 'STUDENT' | 'LECTURER' | 'ADMIN';
+        let resolvedId: string | undefined = (token?.id as string | undefined) ?? user?.id;
+        const resolvedRole =
+          (token?.role as Role | undefined) ??
+          (user as { role?: Role } | undefined)?.role ??
+          'STUDENT';
+
+        if (!resolvedId && session.user.email) {
+          const dbUser = await prisma.user.findUnique({
+            where: { email: session.user.email },
+            select: { id: true },
+          });
+          resolvedId = dbUser?.id;
+        }
+
+        session.user.id = resolvedId ?? '';
+        session.user.role = resolvedRole;
       }
       return session;
     },

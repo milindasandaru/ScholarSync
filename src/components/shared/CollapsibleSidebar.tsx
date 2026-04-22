@@ -98,7 +98,7 @@ export function CollapsibleSidebar({ role, open, onClose }: CollapsibleSidebarPr
           <button
             onClick={() => {
               onClose();
-              signOut({ callbackUrl: '/login' });
+              signOut({ callbackUrl: '/' });
             }}
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-muted transition-colors w-full"
           >
