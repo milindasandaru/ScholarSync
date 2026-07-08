@@ -3,7 +3,6 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Prerequisites
-
 - Node.js 18 or newer
 - npm (or yarn/pnpm/bun)
 - Git installed
